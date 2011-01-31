@@ -1,0 +1,11 @@
+6
+8 8
+4 3
+3 4
+1 1
+1 1
+1 1
+
+Output should be 96.
+This tests the case where the DropBox is full and we need to reset the 
+free space.
