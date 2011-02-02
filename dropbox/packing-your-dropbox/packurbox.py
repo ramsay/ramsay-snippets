@@ -23,9 +23,14 @@ Sample Output
 
 88
 """
+#from __future__ import print_function
+import sys
+
 class DropBox:
     w = 1
     h = 1
+    x = 0
+    y = 0
     def rotate(self):
         t = self.w
         self.w = self.h
@@ -39,6 +44,8 @@ class DropBox:
 #free space = (lowest left x, lowest left y, width, height)
 def fit(size, free, box):
     x, y, w, h = free
+    box.x = x
+    box.y = y
 
     if h < box.h and w < box.w:
         size = (size[0]+box.w-w, size[1]+box.h-h)
@@ -57,6 +64,31 @@ def fit(size, free, box):
     free = (x, y, w, h)
     return size, free
 
+def pretty(boxes,w,h):
+    '''Pretty print the list of boxes'''
+    print >> sys.stderr, str(w) + 'x' + str(h) + ':'
+    graph = [[' ' for l in range(h+1)] for m in range(w+1)]
+    for box in boxes:
+        try:
+            # Vertices
+            graph[box.x][box.y] = '+'
+            graph[box.x+box.w][box.y] = '+'
+            graph[box.x][box.y+box.h] = '+'
+            graph[box.x+box.w][box.y+box.h] = '+'
+
+            # Edges
+            for x in range(box.x+1, box.x+box.w):
+                graph[x][box.y] = '|'
+                graph[x][box.y+box.h] = '|'
+
+            for y in range(box.y+1, box.y+box.h):
+                graph[box.x][y] = '-'
+                graph[box.x+box.w][y] = '-'
+        except:
+            pass #Let's not worry about errors in an optional feature
+    print >> sys.stderr, '\n'.join([''.join(row) for row in graph])
+
+
 def pack(boxes):
     #Align all the boxes and sort them by height lagest to smallest
     boxes.sort(key=lambda box: box.align(), reverse=True)
@@ -64,21 +96,20 @@ def pack(boxes):
     #free = (left, lower, width, height)
     free = (0, 0, 0, 0)
     for box in boxes:
-        print( "Packing box: ", box.w, box.h)
         size, free = fit(size, free, box)
-        print size, free
+    pretty(boxes, size[0], size[1])
     return size[0]*size[1]
 
 if __name__ == '__main__':
     import sys
-    inp = input("Number of boxes")
+    inp = input() #Number of boxes
     try:
         boxcount = int(inp)
     except:
         sys.exit()
     boxes = []
     for i in range(boxcount):
-        inp = raw_input(str(i) + ": width height> ")
+        inp = raw_input('') #Box: width height
         box = DropBox()
         try:
             w, h = inp.split(" ")
