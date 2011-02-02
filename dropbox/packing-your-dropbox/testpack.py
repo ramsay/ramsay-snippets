@@ -18,5 +18,9 @@ class TestSecondColumn(DropBoxOfficial):
     values = [(8,8), (4, 3), (3, 4), (1, 1), (1, 1), (1, 1)]
     output = 96
 
+class TestFlipForOptimal(DropBoxOfficial):
+    values = [(3,1), (2,2), (1,2)]
+    output = 9
+
 if __name__ == '__main__':
     unittest.main()
