@@ -19,8 +19,14 @@ class TestSecondColumn(DropBoxOfficial):
     output = 96
 
 class TestFlipForOptimal(DropBoxOfficial):
+    '''This test requires flipping the tail box.'''
     values = [(3,1), (2,2), (1,2)]
     output = 9
+
+class TestFlipRoot(DropBoxOfficial):
+    '''This test requires flipping the root box.'''
+    values = [(2,3), (2,1)]
+    output = 8
 
 if __name__ == '__main__':
     unittest.main()
