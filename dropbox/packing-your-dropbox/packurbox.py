@@ -64,6 +64,8 @@ def fit(size, free, box):
     free = (x, y, w, h)
     return size, free
 
+class BoxOutsideBounds(Exception):
+
 def pretty(boxes,w,h):
     '''Pretty print the list of boxes'''
     print >> sys.stderr, str(w) + 'x' + str(h) + ':'
@@ -84,10 +86,10 @@ def pretty(boxes,w,h):
             for y in range(box.y+1, box.y+box.h):
                 graph[box.x][y] = '-'
                 graph[box.x+box.w][y] = '-'
-        except:
-            pass #Let's not worry about errors in an optional feature
+        except e:
+            print "Box (", box.x, box.y, box.w, box.h, ") is outside bounds (", w, h,")"
+            raise e
     print >> sys.stderr, '\n'.join([''.join(row) for row in graph])
-
 
 def pack(boxes):
     #Align all the boxes and sort them by height lagest to smallest
@@ -105,8 +107,11 @@ if __name__ == '__main__':
     inp = input() #Number of boxes
     try:
         boxcount = int(inp)
+        if boxcount < 1 or boxcount > 100:
+            raise
     except:
-        sys.exit()
+        sys.exit("Box count must be between 1 and 100 (inclusive)")
+
     boxes = []
     for i in range(boxcount):
         inp = raw_input('') #Box: width height
@@ -116,7 +121,8 @@ if __name__ == '__main__':
             box.w = int(w)
             box.h = int(h)
         except:
-            sys.exit()
+            sys.exit("Box definition should be integers seperated "\
+            "by whitespace")
         boxes.append(box)
     print(pack(boxes))
     sys.exit()
