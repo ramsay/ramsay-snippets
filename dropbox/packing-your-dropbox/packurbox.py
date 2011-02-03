@@ -64,8 +64,6 @@ def fit(size, free, box):
     free = (x, y, w, h)
     return size, free
 
-class BoxOutsideBounds(Exception):
-
 def pretty(boxes,w,h):
     '''Pretty print the list of boxes'''
     print >> sys.stderr, str(w) + 'x' + str(h) + ':'
