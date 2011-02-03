@@ -1,5 +1,5 @@
 import unittest
-from packurbox import DropBox, pack, fit
+from packurbox import DropBox, DropNode, pack, packtree, fit
 
 class DropBoxOfficial(unittest.TestCase):
     values = [(8,8), (4,3), (3, 4)]
@@ -11,7 +11,9 @@ class DropBoxOfficial(unittest.TestCase):
             db = DropBox()
             db.w, db.h = b
             boxes.append(db)
-
+        root = DropNode(boxes[0].w, boxes[0].h)
+        tree = packtree(root,root,boxes)
+        self.assertEqual(self.output, tree.w*tree.h)
         self.assertEqual(self.output, pack(boxes))
 
 class TestSecondColumn(DropBoxOfficial):

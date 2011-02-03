@@ -100,6 +100,69 @@ def pack(boxes):
     pretty(boxes, size[0], size[1])
     return size[0]*size[1]
 
+class DropNode:
+    left = None
+    right = None
+    def __init__(self,w,h, left=None, right=None):
+        self.w = w
+        self.h = h
+        self.left = left
+        self.right = right
+
+    def rotate(self):
+        t = self.w
+        self.h = self.w
+        self.w = t
+        if self.left:
+            self.left.rotate()
+        if self.right:
+            self.right.rotate()
+
+    def fits(self,box):
+        return False
+
+
+def packtree(root, parent, boxes):
+    '''This is a recursive pack algorithm, similar to a binary search
+    tree.'''
+    if not boxes:
+        return root
+    if boxes[0].w * boxes[0].h > parent.w * parent.h:
+        # Painful insertion process.
+        if boxes[0].w * boxes[0].h > root.w * root.h:
+            root = DropNode( root.left.w + root.right.w,
+                             root.h,
+                             boxes.pop(),
+                             root )
+            #Using this as default
+            #if root.left.h == root.right.h:
+            #    root.w = root.left.w + root.right.w
+            #    root.h = root.left.h
+            if root.left.w == root.right.w:
+                root.w = root.left.h + root.right.h
+                root.h = root.left.w
+            elif root.left.w == root.right.h:
+                root.left.rotate()
+                root.w = root.left.w + root.right.w
+                root.h = root.left.h
+            elif box.h == root.w:
+                root.left.rotate()
+                root.w = root.left.h + root.right.h
+                root.h = root.left.w
+            return packtree(root, root.right, boxes)
+        else:
+            #inserting in the middle. Ugh.
+            pass
+        return packtree(root, root, boxes) # Painful insertion.
+    if type(parent.left) == type(DropNode):
+        return packtree(root, parent.left, boxes)
+    if type(parent.right) == type(DropNode):
+        return packtree(root, parent.right, boxes)
+    if boxes[0].w > parent.w or boxes[0].h > parent.h:
+        boxes[0].rotate()
+    parent.left = boxes.pop()
+    return packtree(root, parent, boxes)
+
 if __name__ == '__main__':
     import sys
     inp = input() #Number of boxes
