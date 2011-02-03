@@ -84,8 +84,8 @@ def pretty(boxes,w,h):
             for y in range(box.y+1, box.y+box.h):
                 graph[box.x][y] = '-'
                 graph[box.x+box.w][y] = '-'
-        except e:
-            print "Box (", box.x, box.y, box.w, box.h, ") is outside bounds (", w, h,")"
+        except Exception as e:
+            print >> sys.stderr, "Box (", box.x, box.y, box.w, box.h, ") is outside bounds (", w, h,")"
             raise e
     print >> sys.stderr, '\n'.join([''.join(row) for row in graph])
 
