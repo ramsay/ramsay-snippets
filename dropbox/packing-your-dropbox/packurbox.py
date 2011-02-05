@@ -27,10 +27,17 @@ Sample Output
 import sys
 
 class DropBox:
-    w = 1
-    h = 1
+    w = 0
+    h = 0
     x = 0
     y = 0
+    def __init__(self,vector=None, w=0, h=0):
+        if vector:
+            self.w, self.h = vector
+        else:
+            self.w = w
+            self.h = h
+    
     def rotate(self):
         t = self.w
         self.w = self.h
@@ -113,9 +120,9 @@ def pack(boxes):
 
 class DropNode:
     left = None # Left Edge is the parent.
-    vertex = None # We can store atmost one Box
+    vertex = None # We can store at most one Box
     right = None # Right Edge is the child.
-    direction = [1,0] # direction is the identiy ray
+    direction = [1,0] # direction is the identity ray
     def __init__(self,vertex=None, left=None, right=None):
         self.vertex = vertex
         self.left = left
@@ -123,16 +130,22 @@ class DropNode:
             self.left.right = self
         self.right = right
         if self.right:
+            w = self.right.width()
+            h = self.right.height()
             if self.vertex.w > self.vertex.h:
                 # An increase in width costs less than an increase in height
                 # if width is already greater.
-                self.direction = [1,0]
+                self.direction = [0,1]
+                if w < h:
+                    self.right.rotate()
             else:
                 self.direction = [0,1]
+                if h < w:
+                    self.right.rotate()
             self.right.left = self
 
     def rotate(self):
-        direction.reverse()
+        self.direction.reverse()
         if self.vertex:
             self.vertex.rotate()
         if self.right:
@@ -157,8 +170,13 @@ class DropNode:
 def packtree(node, boxes):
     '''This is a recursive pack algorithm, similar to a binary search
     tree.'''
+    if node is None:
+        node = DropNode()
+    
     if not boxes: # Stack empty.
-        return node
+        while node and node.left:
+            node = node.left
+        return node # Return root
 
     if node is None: #RootNode
         print >> sys.stderr, "root node", boxes[-1]
@@ -176,16 +194,16 @@ def packtree(node, boxes):
     print >> sys.stderr, "left", left,
     print >> sys.stderr, "right", right,
     if left[0] > right[0]:
+        print >> sys.stderr, "insert left"
         if node.left:
             return packtree(node.left, boxes)
         else:
-            print >> sys.stderr, "insert left"
             return packtree(DropNode(boxes.pop(0),None,node), boxes)
     if left[0] <= right[1]:
+        print >> sys.stderr, "insert right"
         if node.right:
             return packtree(node.right, boxes)
         else:
-            print >> sys.stderr, "insert right"
             return packtree(DropNode(boxes.pop(0),node),boxes)
     print >> sys.stderr, "insert middle"
     return packtree(DropNode(boxes.pop(0), node.left, node), boxes)
@@ -232,6 +250,7 @@ def prettytree(tree):
         except Exception as e:
             raise e
         node = node.right
+    print >> sys.stderr
     print >> sys.stderr, '\n'.join([''.join(row) for row in graph])
 
 if __name__ == '__main__':
