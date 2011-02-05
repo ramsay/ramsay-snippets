@@ -48,6 +48,7 @@ def fit(size, free, box):
     box.y = y
 
     if h < box.h and w < box.w:
+        # Our box will not fit inside the current freespace.
         size = (size[0]+box.w-w, size[1]+box.h-h)
         x += box.w
         w = 0
@@ -57,9 +58,19 @@ def fit(size, free, box):
         w = box.w
         y += box.h
         h -= box.h
-    else:
+    elif h < box.h:
         x += box.w
         w -= box.w
+    else:
+        box.rotate()
+        if w < box.w:
+            size = (size[0] + box.w - w, size[1])
+            w = box.w
+            y += box.h
+            h -= box.h
+        else:
+            x += box.w
+            w -= box.w
 
     free = (x, y, w, h)
     return size, free
@@ -101,67 +112,127 @@ def pack(boxes):
     return size[0]*size[1]
 
 class DropNode:
-    left = None
-    right = None
-    def __init__(self,w,h, left=None, right=None):
-        self.w = w
-        self.h = h
+    left = None # Left Edge is the parent.
+    vertex = None # We can store atmost one Box
+    right = None # Right Edge is the child.
+    direction = [1,0] # direction is the identiy ray
+    def __init__(self,vertex=None, left=None, right=None):
+        self.vertex = vertex
         self.left = left
+        if self.left:
+            self.left.right = self
         self.right = right
+        if self.right:
+            if self.vertex.w > self.vertex.h:
+                # An increase in width costs less than an increase in height
+                # if width is already greater.
+                self.direction = [1,0]
+            else:
+                self.direction = [0,1]
+            self.right.left = self
 
     def rotate(self):
-        t = self.w
-        self.h = self.w
-        self.w = t
-        if self.left:
-            self.left.rotate()
+        direction.reverse()
+        if self.vertex:
+            self.vertex.rotate()
         if self.right:
             self.right.rotate()
 
-    def fits(self,box):
-        return False
+    def width(self):
+        w = 0
+        if self.vertex:
+            w = self.vertex.w
+        if self.right:
+            w += self.direction[0]*self.right.width()
+        return w
 
+    def height(self):
+        h = 0
+        if self.vertex:
+            h = self.vertex.h
+        if self.right:
+            h += self.direction[1]*self.right.height()
+        return h
 
-def packtree(root, parent, boxes):
+def packtree(node, boxes):
     '''This is a recursive pack algorithm, similar to a binary search
     tree.'''
-    if not boxes:
-        return root
-    if boxes[0].w * boxes[0].h > parent.w * parent.h:
-        # Painful insertion process.
-        if boxes[0].w * boxes[0].h > root.w * root.h:
-            root = DropNode( root.left.w + root.right.w,
-                             root.h,
-                             boxes.pop(),
-                             root )
-            #Using this as default
-            #if root.left.h == root.right.h:
-            #    root.w = root.left.w + root.right.w
-            #    root.h = root.left.h
-            if root.left.w == root.right.w:
-                root.w = root.left.h + root.right.h
-                root.h = root.left.w
-            elif root.left.w == root.right.h:
-                root.left.rotate()
-                root.w = root.left.w + root.right.w
-                root.h = root.left.h
-            elif box.h == root.w:
-                root.left.rotate()
-                root.w = root.left.h + root.right.h
-                root.h = root.left.w
-            return packtree(root, root.right, boxes)
+    if not boxes: # Stack empty.
+        return node
+
+    if node is None: #RootNode
+        print >> sys.stderr, "root node", boxes[-1]
+        return packtree(DropNode(boxes.pop(0)), boxes)
+
+    if node.vertex is None: # Not sure if I agree with this.
+        print >> sys.stderr, "curious"
+        node.vertex = boxes.pop()
+        return packtree(node, boxes)
+    # Make comparisons simpler
+    left = (max(boxes[0].w, boxes[0].h), min(boxes[0].w, boxes[0].h))
+    w = node.width()
+    h = node.height()
+    right = (max(w, h), min(w, h))
+    print >> sys.stderr, "left", left,
+    print >> sys.stderr, "right", right,
+    if left[0] > right[0]:
+        if node.left:
+            return packtree(node.left, boxes)
         else:
-            #inserting in the middle. Ugh.
-            pass
-        return packtree(root, root, boxes) # Painful insertion.
-    if type(parent.left) == type(DropNode):
-        return packtree(root, parent.left, boxes)
-    if type(parent.right) == type(DropNode):
-        return packtree(root, parent.right, boxes)
-    if boxes[0].w > parent.w or boxes[0].h > parent.h:
-        boxes[0].rotate()
-    parent.left = boxes.pop()
-    return packtree(root, parent, boxes)
+            print >> sys.stderr, "insert left"
+            return packtree(DropNode(boxes.pop(0),None,node), boxes)
+    if left[0] <= right[1]:
+        if node.right:
+            return packtree(node.right, boxes)
+        else:
+            print >> sys.stderr, "insert right"
+            return packtree(DropNode(boxes.pop(0),node),boxes)
+    print >> sys.stderr, "insert middle"
+    return packtree(DropNode(boxes.pop(0), node.left, node), boxes)
+
+def prettytree(tree):
+    '''Pretty print the list of boxes'''
+    w = tree.width()
+    h = tree.height()
+    print >> sys.stderr, str(w) + 'x' + str(h) + ':'
+    graph = [[' ' for l in range(h+1)] for m in range(w+1)]
+    #Find root:
+    node = tree
+    while node.left:
+        node = node.left
+    vx = 0
+    vy = 0
+    i = 0
+    while node.right:
+        i += 1
+        print >> sys.stderr, '.',
+        if node.vertex is None:
+            print >> sys.stderr, "Empty Vertex"
+            node = node.right
+            continue
+        try:
+            vw = tree.vertex.w
+            vh = tree.vertex.h
+            # Vertices
+            graph[vx][vy] = '+'
+            graph[vx+vw][vy] = '+'
+            graph[vx][vy+vh] = '+'
+            graph[vx+vw][vy+vh] = '+'
+    
+            # Edges
+            for x in range(vx+1, vx+vw):
+                graph[x][vy] = '|'
+                graph[x][vy+vh] = '|'
+    
+            for y in range(vy+1, vy+vh):
+                graph[vx][y] = '-'
+                graph[vx+vw][y] = '-'
+            vx += tree.direction[0]*vw
+            vy += tree.direction[1]*vh
+        except Exception as e:
+            raise e
+        node = node.right
+    print >> sys.stderr, '\n'.join([''.join(row) for row in graph])
 
 if __name__ == '__main__':
     import sys

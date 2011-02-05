@@ -1,20 +1,29 @@
 import unittest
-from packurbox import DropBox, DropNode, pack, packtree, fit
+from packurbox import DropBox, DropNode, pack, packtree, prettytree, fit
 
 class DropBoxOfficial(unittest.TestCase):
     values = [(8,8), (4,3), (3, 4)]
     output = 88
-    def testPack(self):
-        """Test the official dropbox input/output"""
-        boxes = []
+
+    def setUp(self):
+        self.boxes = []
         for b in self.values:
             db = DropBox()
             db.w, db.h = b
-            boxes.append(db)
-        root = DropNode(boxes[0].w, boxes[0].h)
-        tree = packtree(root,root,boxes)
-        self.assertEqual(self.output, tree.w*tree.h)
-        self.assertEqual(self.output, pack(boxes))
+            self.boxes.append(db)
+
+    #def testPack(self):
+    #    """Test the official dropbox input/output"""
+    #    self.assertEqual(self.output, pack(self.boxes))
+
+    def testPacktree(self):
+        tree = packtree(None, self.boxes)
+        prettytree(tree)
+        self.assertEqual(self.output, tree.width()*tree.height())
+
+class SanityTest(DropBoxOfficial):
+    values = [(100,100)]
+    output = 10000
 
 class TestSecondColumn(DropBoxOfficial):
     values = [(8,8), (4, 3), (3, 4), (1, 1), (1, 1), (1, 1)]
