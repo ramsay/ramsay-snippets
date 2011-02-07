@@ -43,6 +43,14 @@ def sum_activities(tuple_list):
     s = 0
     for t in tuple_list:
         s += t[1]
+    return s
+
+def max_activities(tuple_list):
+    v = (None,0)
+    for t in tuple_list:
+        if t[1] > v[1]:
+            v = t
+    return v
 
 def diet(activities):
     ''' Takes a `dict` of activities {'name':calorie-value} and returns a list
@@ -50,7 +58,7 @@ def diet(activities):
     diet_list = []
     positive = []
     negative = []
-    #Separate positive and negative activites.
+    #Separate positive and negative activities.
     for k in activities:
         v = activities[k]
         if v > 0:
@@ -79,8 +87,20 @@ def diet(activities):
     while positive.count(None):
         positive.remove(None)
     
-    while len(positive) and len(negative):
-        break
+    #Remove extremes from the positive side
+    m = max_activities(positive)
+    s = sum_activities(negative)
+    while negative and m[1] > s:
+        positive.remove(m)
+        m = max_activities(positive)
+    
+    #Remove extremes from the right
+    m = max_activities(negative)
+    s = sum_activities(positive)
+    while positive and m[1] > s:
+        negitive.remove(m)
+        m = max_activities(negative)
+    
     
     if diet_list:
         #We have at least one entry.
