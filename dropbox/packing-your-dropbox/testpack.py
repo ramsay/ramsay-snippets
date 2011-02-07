@@ -12,14 +12,15 @@ class DropBoxOfficial(unittest.TestCase):
             db.w, db.h = b
             self.boxes.append(db)
 
-    #def testPack(self):
-    #    """Test the official dropbox input/output"""
-    #    self.assertEqual(self.output, pack(self.boxes))
+    def testPack(self):
+        """Test the official dropbox input/output"""
+        self.assertEqual(self.output, pack(self.boxes))
 
     def testPacktree(self):
         '''Test the packing of my special rtree'''
         tree = packtree(None, self.boxes)
         prettytree(tree)
+        self.assertEqual(None, tree.left)
         self.assertEqual(self.output, tree.width()*tree.height())
 
 class SanityTest(DropBoxOfficial):

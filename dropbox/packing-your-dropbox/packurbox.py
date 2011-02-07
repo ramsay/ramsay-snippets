@@ -153,18 +153,20 @@ class DropNode:
 
     def width(self):
         w = 0
-        if self.vertex:
+        if self.vertex is not None:
             w = self.vertex.w
-        if self.right:
-            w += self.direction[0]*self.right.width()
+        if self.right is not None:
+            if self.direction[0]:
+                w += self.right.width()
         return w
 
     def height(self):
         h = 0
-        if self.vertex:
+        if self.vertex is not None:
             h = self.vertex.h
-        if self.right:
-            h += self.direction[1]*self.right.height()
+        if self.right is not None:
+            if self.direction[1]:
+                h += self.right.height()
         return h
 
 def packtree(node, boxes):
@@ -174,7 +176,7 @@ def packtree(node, boxes):
         node = DropNode()
     
     if not boxes: # Stack empty.
-        while node and node.left:
+        while node.left:
             node = node.left
         return node # Return root
 
@@ -191,20 +193,19 @@ def packtree(node, boxes):
     w = node.width()
     h = node.height()
     right = (max(w, h), min(w, h))
-    print >> sys.stderr, "left", left,
-    print >> sys.stderr, "right", right,
+    print >> sys.stderr, "left", left, "right", right,
     if left[0] > right[0]:
         print >> sys.stderr, "insert left"
         if node.left:
             return packtree(node.left, boxes)
         else:
             return packtree(DropNode(boxes.pop(0),None,node), boxes)
-    if left[0] <= right[1]:
-        print >> sys.stderr, "insert right"
-        if node.right:
-            return packtree(node.right, boxes)
-        else:
-            return packtree(DropNode(boxes.pop(0),node),boxes)
+    #if left[0] < right[1]:
+    #    print >> sys.stderr, "insert right"
+    #    if node.right:
+    #        return packtree(node.right, boxes)
+    #    else:
+    #        return packtree(DropNode(boxes.pop(0),node),boxes)
     print >> sys.stderr, "insert middle"
     return packtree(DropNode(boxes.pop(0), node.left, node), boxes)
 
@@ -214,13 +215,10 @@ def prettytree(tree):
     h = tree.height()
     print >> sys.stderr, str(w) + 'x' + str(h) + ':'
     graph = [[' ' for l in range(h+1)] for m in range(w+1)]
-    #Find root:
-    node = tree
-    while node.left:
-        node = node.left
     vx = 0
     vy = 0
     i = 0
+    node = tree
     while node.right:
         i += 1
         print >> sys.stderr, '.',
