@@ -39,9 +39,53 @@ cookies
 mexican-coke
 '''
 
+def sum_activities(tuple_list):
+    s = 0
+    for t in tuple_list:
+        s += t[1]
+
 def diet(activities):
     ''' Takes a `dict` of activities {'name':calorie-value} and returns a list
     of strings that sum up to zero or "no solution"'''
+    diet_list = []
+    positive = []
+    negative = []
+    #Separate positive and negative activites.
+    for k in activities:
+        v = activities[k]
+        if v > 0:
+            positive.append((k,v))
+        elif v < 0:
+            negative.append((k,abs(v)))
+        else:
+            # Value is zero?! Good for any diet.
+            diet_list.append(k)
+    
+    #Remove 1 to |-1| duplicates.
+    for i in range(len(positive)):
+        k, v = positive[i]
+        j = 0
+        for j in range(len(negative)):
+            k2, v2 = negative[j]
+            if v == v2:
+                diet_list.append(k)
+                diet_list.append(k2)
+                positive[i] = None
+                break
+        if positive[i] is None:
+            negative.pop(j)
+    
+    #Clean up.
+    while positive.count(None):
+        positive.remove(None)
+    
+    while len(positive) and len(negative):
+        break
+    
+    if diet_list:
+        #We have at least one entry.
+        diet_list.sort()
+        return diet_list
     return ["no solution"]
 
 if __name__ == '__main__':
@@ -52,6 +96,12 @@ if __name__ == '__main__':
         print sys.stderr >> e
         print("First input must be an integer")
         sys.exit()
+    if count > 50:
+        print >> sys.stderr, "Maximum count is 50 by project description."
+        count = 50
+    if count < 1:
+        print >> sys.stderr, "Minimum count is 1 by project description."
+        count = 1
     activites = {}
     for i in range(count):
         key_value_pair = input()
