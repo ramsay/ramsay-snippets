@@ -16,6 +16,12 @@ class DropBox(unittest.TestCase):
         output = ['coding-six-hours','cookies','mexican-coke']
         
         self.assertEqual(output, diet(activities))
-
+    
+    def testOneToOne(self):
+        activities = {'apple':100, 'walk-a-lap':-100}
+        output = ['apple', 'walk-a-lap']
+        
+        self.assertEqual(output, diet(activities))
+        
 if __name__ == '__main__':
     unittest.main()
