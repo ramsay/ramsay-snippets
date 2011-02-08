@@ -141,26 +141,28 @@ def diet(activities):
     number of bits used to represent it. This algorithm is polynomial in the 
     values of N and P, which are exponential in their numbers of bits.
     '''
-    N = sum_activities(negative)
-    P = sum_activities(positive)
-    both = negative + positive
-    q = [[both[0][1] == s for x in range(N,P)]]
-
-    for i in range(1,len(both)):
-        l = [False]*(P-N)
-        for s in range(N,P):
-            if both[i][1] == s:
-                l[s-N] = True
-            else:
-                l[s-N] = q[i-1][s-N]
-                l[s-N] = l[s-N] or q[i-1][s-both[i][1]-N]
-            l[s-N] = False
-        q.append(l)
-        #q.append([ q[i-1][s-N] or both[i][1] == s or q[i-1][s-both[i][1]-N] for s in range(N,P)])
-        
-    for i in range(len(both)-1,0,-1):
-        if q[i][0-N]:
-            return "yes, " + str(i)
+    if negative and positive:
+        N = sum_activities(negative)
+        P = sum_activities(positive)
+        both = negative + positive
+        q = [[both[0][1] == s for x in range(N,P)]]
+        q = [{str(both[0][1]): [both[0][0]]}]
+        print >> sys.stderr, q[0]
+        for i in range(1,len(both)):
+            d = {}
+            for s in range(N,P):
+                if both[i][1] == s:
+                    d[str(s)] = [both[i][0]]
+                elif str(s) in q[i-1]:
+                    d[str(s)] = q[i-1][str(s)]
+                elif str(s-both[i][1]) in q[i-1]:
+                    d[str(s)] = [both[i][0]] + q[i-1][str(s-both[i][1])]
+            print >> sys.stderr, d
+            q.append(d)
+            
+        for i in range(len(both)-1,0,-1):
+            if '0' in q[i]:
+                diet_list.extend(q[i]['0'])
     
     if diet_list:
         #We have at least one entry.
