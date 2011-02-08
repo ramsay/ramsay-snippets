@@ -94,13 +94,44 @@ def diet(activities):
         positive.remove(m)
         m = max_activities(positive)
     
-    #Remove extremes from the right
+    #Remove extremes from the negative side
     m = max_activities(negative)
     s = sum_activities(positive)
     while positive and m[1] > s:
         negitive.remove(m)
         m = max_activities(negative)
     
+    # At this point all items left will be non extremes and non-trivial
+    ''' From en.wikipedia.org/wiki/Suset_sum_problem on Feb. 7, 2011
+    The problem can be solved as follows using dynamic programming. Suppose the
+    sequence is
+        x1, ..., xn
+    and we wish to determine if there is a nonempty subset which sums to 0. Let
+    N be the sum of the negative values and P the sum of the positive values. 
+    Define the boolean-valued function Q(i,s) to be the value (true or false) 
+    of
+        "there is a nonempty subset of x1, ..., xi which sums to s".
+    Thus, the solution to the problem is the value of Q(n,0).
+    Clearly, Q(i,s) = false if s < N or s > P so these values do not need to be
+    stored or computed. Create an array to hold the values Q(i,s) for 1 ≤ i ≤ n
+    and N ≤ s ≤ P.
+    The array can now be filled in using a simple recursion. Initially, for 
+    N ≤ s ≤ P, set
+    Q(1,s) := (x1 = s).
+    Then, for i = 2, …, n, set
+    Q(i,s) := Q(i − 1,s) or (xi = s) or Q(i − 1,s − xi)   for N ≤ s ≤ P.
+    For each assignment, the values of Q on the right side are already known, 
+    either because they were stored in the table for the previous value of i or
+    because Q(i − 1,s − xi) = false if s − xi < N or s − xi > P. Therefore, the
+    total number of arithmetic operations is O(n(P − N)). For example, if all 
+    the values are O(nk) for some k, then the time required is O(nk+2).
+    This algorithm is easily modified to return the subset with sum 0 if there 
+    is one.
+    This solution does not count as polynomial time in complexity theory 
+    because P − N is not polynomial in the size of the problem, which is the 
+    number of bits used to represent it. This algorithm is polynomial in the 
+    values of N and P, which are exponential in their numbers of bits.
+    '''
     
     if diet_list:
         #We have at least one entry.
