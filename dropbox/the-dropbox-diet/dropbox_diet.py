@@ -145,9 +145,7 @@ def diet(activities):
         N = sum_activities(negative)
         P = sum_activities(positive)
         both = negative + positive
-        q = [[both[0][1] == s for x in range(N,P)]]
         q = [{str(both[0][1]): [both[0][0]]}]
-        print >> sys.stderr, q[0]
         for i in range(1,len(both)):
             d = {}
             for s in range(N,P):
@@ -157,12 +155,13 @@ def diet(activities):
                     d[str(s)] = q[i-1][str(s)]
                 elif str(s-both[i][1]) in q[i-1]:
                     d[str(s)] = [both[i][0]] + q[i-1][str(s-both[i][1])]
-            print >> sys.stderr, d
             q.append(d)
-            
+        
+        #Find a zero-sum in our solution space.
         for i in range(len(both)-1,0,-1):
             if '0' in q[i]:
                 diet_list.extend(q[i]['0'])
+                break # Just one will do.
     
     if diet_list:
         #We have at least one entry.
