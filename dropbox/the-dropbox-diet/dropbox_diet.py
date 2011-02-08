@@ -1,15 +1,32 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python
 ''' The Dropbox Diet challenge
-Of the boatload of perks Dropbox offers, the ones most threatening to our engineers' waistlines are the daily lunches, the fully-stocked drink fridge, and a full-length bar covered with every snack you could want. All of those calories add up. Luckily, the office is also well-equipped with ping-pong, a DDR machine, and a subsidized gym right across the street that can burn those calories right back off. Although we often don't, Dropboxers should choose the food they eat to counterbalance the activities they perform so that they don't end up with caloric deficit or excess.
+Of the boatload of perks Dropbox offers, the ones most threatening to our 
+engineers' waistlines are the daily lunches, the fully-stocked drink fridge, 
+and a full-length bar covered with every snack you could want. All of those 
+calories add up. Luckily, the office is also well-equipped with ping-pong, a 
+DDR machine, and a subsidized gym right across the street that can burn those 
+calories right back off. Although we often don't, Dropboxers should choose 
+the food they eat to counterbalance the activities they perform so that they 
+don't end up with caloric deficit or excess.
 
-Help us keep our caloric intake in check. You'll be given a list of activities and their caloric impact. Write a program that outputs the names of activities a Dropboxer should choose to partake in so that the sum of their caloric impact is zero. Once the activity is selected, it cannot be chosen again.
+Help us keep our caloric intake in check. You'll be given a list of 
+activities and their caloric impact. Write a program that outputs the names 
+of activities a Dropboxer should choose to partake in so that the sum of 
+their caloric impact is zero. Once the activity is selected, it cannot be 
+chosen again.
 
 Input
-Your program reads an integer N (1 <= N <= 50) from stdinrepresenting the number of list items in the test file. The list is comprised of activities or food items and its respective calorie impact separated by a space, one pair per line. Activity names will use only lowercase ASCII letters and the dash (-) character.
+Your program reads an integer N (1 <= N <= 50) from stdinrepresenting the 
+number of list items in the test file. The list is comprised of activities or 
+food items and its respective calorie impact separated by a space, one pair 
+per line. Activity names will use only lowercase ASCII letters and the dash 
+(-) character.
 
 Output
-Output should be sent to stdout, one activity name per line, alphabetized. If there is no possible solution, the output should be no solution. If there are multiple solutions, your program can output any one of them.
+Output should be sent to stdout, one activity name per line, alphabetized. If 
+there is no possible solution, the output should be no solution. If there are 
+multiple solutions, your program can output any one of them.
 
 Sample Input
 
@@ -47,18 +64,22 @@ def sum_activities(tuple_list):
     return s
 
 def min_activities(tuple_list):
-    v = (None,0)
-    for t in tuple_list:
-        if t[1] < v[1]:
-            v = t
-    return v
+    if tuple_list:
+        v = tuple_list[0]
+        for t in tuple_list:
+            if t[1] < v[1]:
+                v = t
+        return v
+    return (None,0)
 
 def max_activities(tuple_list):
-    v = (None,0)
-    for t in tuple_list:
-        if t[1] > v[1]:
-            v = t
-    return v
+    if tuple_list:
+        v = tuple_list[0]
+        for t in tuple_list:
+            if t[1] > v[1]:
+                v = t
+        return v
+    return (None, 0)
 
 def diet(activities):
     ''' Takes a `dict` of activities {'name':calorie-value} and returns a list
