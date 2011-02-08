@@ -39,7 +39,6 @@ coding-six-hours
 cookies
 mexican-coke
 '''
-import sys
 
 def sum_activities(tuple_list):
     s = 0
@@ -185,15 +184,15 @@ if __name__ == '__main__':
         count = 1
     activites = {}
     for i in range(count):
-        key_value_pair = input()
+        key_value_pair = raw_input()
         try:
             key = key_value_pair.split(' ')[0]
-            value = int(key_value_pair.split(' ')[0])
+            value = int(key_value_pair.split(' ')[1])
         except Exception as e:
-            print sys.stderr >> e
+            print >> sys.stderr, e
             print("Activity Input must take form: activity-name 100")
             sys.exit()
-        activites['key'] = value
+        activites[key] = value
     print('\n'.join(diet(activites)))
     sys.exit()
         
