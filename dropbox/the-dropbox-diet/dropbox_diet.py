@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/python
-''' The Dropbox Diet challenge
+''' Robert Ramsay  
+https://github.com/ramsay/ramsay-snippets/tree/master/dropbox/the-dropbox-diet
+The Dropbox Diet challenge
 Of the boatload of perks Dropbox offers, the ones most threatening to our 
 engineers' waistlines are the daily lunches, the fully-stocked drink fridge, 
 and a full-length bar covered with every snack you could want. All of those 
@@ -57,28 +58,32 @@ cookies
 mexican-coke
 '''
 
+def su(x, y):
+    return x + y[1]
+
 def sum_activities(tuple_list):
-    s = 0
-    for t in tuple_list:
-        s += t[1]
-    return s
+    return reduce(su,tuple_list,0)
+
+def mi(x,y):
+    if x[1] > y[1]:
+        return y
+    else:
+        return x
 
 def min_activities(tuple_list):
     if tuple_list:
-        v = tuple_list[0]
-        for t in tuple_list:
-            if t[1] < v[1]:
-                v = t
-        return v
+        return reduce(mi,tuple_list)
     return (None,0)
+
+def ma(x,y):
+    if x[1] > y[1]:
+        return x
+    else:
+        return y
 
 def max_activities(tuple_list):
     if tuple_list:
-        v = tuple_list[0]
-        for t in tuple_list:
-            if t[1] > v[1]:
-                v = t
-        return v
+        return reduce(ma, tuple_list)
     return (None, 0)
 
 def diet(activities):
@@ -98,38 +103,6 @@ def diet(activities):
             # Value is zero?! Good for any diet.
             diet_list.append(k)
     
-    #Remove 1 to |-1| duplicates.
-    for i in range(len(positive)):
-        k, v = positive[i]
-        j = 0
-        for j in range(len(negative)):
-            k2, v2 = negative[j]
-            if v == abs(v2):
-                diet_list.append(k)
-                diet_list.append(k2)
-                positive[i] = None
-                break
-        if positive[i] is None:
-            negative.pop(j)
-    
-    #Clean up.
-    while positive.count(None):
-        positive.remove(None)
-    
-    #Remove extremes from the positive side
-    m = max_activities(positive)
-    s = -1*sum_activities(negative)
-    while negative and m[1] > s:
-        positive.remove(m)
-        m = max_activities(positive)
-    
-    #Remove extremes from the negative side
-    m = min_activities(negative)
-    s = sum_activities(positive)
-    while positive and m[1] > s:
-        negitive.remove(m)
-        m = min_activities(negative)
-    
     # At this point all items left will be non extremes and non-trivial
     ''' From en.wikipedia.org/wiki/Suset_sum_problem on Feb. 7, 2011
     The problem can be solved as follows using dynamic programming. Suppose the
@@ -148,16 +121,16 @@ def diet(activities):
     Initially, for N <= s <= P, set
         Q(1,s) := (x1 = s).
     Then, for i = 2, ..., n, set
-        Q(i,s) := Q(i − 1,s) or (xi = s) or Q(i − 1,s − xi) for N <= s <= P.
-    For each assignment, the values of Q on the right side are already known, 
+        Q(i,s) := Q(i - 1,s) or (xi = s) or Q(i - 1,s - xi) for N <= s <= P.
+    For each assignment, the values of Q on the right side are already known,
     either because they were stored in the table for the previous value of i or
-    because Q(i − 1,s − xi) = false if s − xi < N or s − xi > P. Therefore, the
-    total number of arithmetic operations is O(n(P − N)). For example, if all 
+    because Q(i - 1,s - xi) = false if s - xi < N or s - xi > P. Therefore, the
+    total number of arithmetic operations is O(n(P - N)). For example, if all 
     the values are O(nk) for some k, then the time required is O(nk+2).
     This algorithm is easily modified to return the subset with sum 0 if there 
     is one.
     This solution does not count as polynomial time in complexity theory 
-    because P − N is not polynomial in the size of the problem, which is the 
+    because P - N is not polynomial in the size of the problem, which is the 
     number of bits used to represent it. This algorithm is polynomial in the 
     values of N and P, which are exponential in their numbers of bits.
     '''
