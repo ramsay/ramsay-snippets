@@ -25,6 +25,7 @@ import pygame
 import pygame.locals
 import math
 import random
+import cProfile
 
 CANVAS = None
 LIQUID_TEST = None
@@ -366,4 +367,4 @@ def main():
         LIQUID_TEST.simulate()
     
 if __name__ == "__main__":
-    main()
+    cProfile.runctx("main()", globals(), locals(), filename="Liquid.profile")
