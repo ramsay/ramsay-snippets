@@ -25,8 +25,9 @@ import pygame
 import pygame.locals
 import math
 import random
-import time
 
+CANVAS = None
+LIQUID_TEST = None
 WIDTH = 100
 HEIGHT = 100
 PARTICLESX = 50
@@ -49,44 +50,16 @@ class LiquidTest:
         self.grid = [[Node() for j in range(self.gsizeY)] 
             for i in range(self.gsizeX)]
         
-        '''
-        for i in range(self.gsizeX):
-            self.grid.append([])
-            for j in range(self.gsizeY):
-                self.grid[i].append(Node())
-        '''
         self.particles = [Particle(self.water, i + 4, j + 4, 0.0, 0.0)
             for j in range(particlesY) for i in range(particlesX)]
         
-        '''
-        for i in range(particlesX):
-            for j in range(particlesY):
-                self.particles.append(Particle(self.water, i + 4, j + 4, 0.0, 0.0))
-        '''
 
     def paint(self):
         for p in self.particles:
             pygame.draw.line(CANVAS, p.color, (4*p.x, 4*p.y,),
                 (4*(p.x - p.u), 4.0*(p.y - p.v)))
 
-    def simulate(self):
-        drag = False
-        mdx = mdy = 0.0
-
-        if (self.pressed and self.pressedprev):
-            drag = True
-            mdx = 0.25 * (self.mx - self.mxprev)
-            mdy = 0.25 * (self.my - self.myprev)
-
-        self.pressedprev = self.pressed
-        self.mxprev = self.mx
-        self.myprev = self.my
-
-        while(len(self.active)):
-            self.active.pop().clear()
-
-
-        fx = fy = 0.0
+    def _step1(self):
         for p in self.particles:
             p.cx = p.x - 0.5
             p.cy = p.y - 0.5
@@ -122,8 +95,9 @@ class LiquidTest:
                     n.d += phi
                     n.gx += p.gx[i] * p.py[j]
                     n.gy += p.px[i] * p.gy[j]
-
-
+    
+    def _step2(self, drag, mdx, mdy):
+        fx = fy = 0.0        
         for p in self.particles:
 
             cx = p.x
@@ -156,7 +130,9 @@ class LiquidTest:
             v = p.y - cy
             v2 = v * v
             v3 = v * v2
-            density = n01.d + n01.gx * u + n01.gy * v + C20 * u2 + C02 * v2 + C30 * u3 + C03 * v3 + C21 * u2 * v + C31 * u3 * v + C12 * u * v2 + C13 * u * v3 + C11 * u * v
+            density = (n01.d + n01.gx * u + n01.gy * v + C20 * u2 + C02 * v2 + 
+                C30 * u3 + C03 * v3 + C21 * u2 * v + C31 * u3 * v + C12 * u * 
+                v2 + C13 * u * v3 + C11 * u * v)
 
             pressure = density - 1.0
             if pressure > 2.0:
@@ -189,13 +165,15 @@ class LiquidTest:
                     phi = p.px[i] * p.py[j]
                     n.ax += -((p.gx[i] * p.py[j]) * pressure) + fx * phi
                     n.ay += -((p.px[i] * p.gy[j]) * pressure) + fy * phi
-
+    
+    def _compress_nodes(self):
         for n in self.active:
             if n.m > 0.0:
                 n.ax /= n.m
                 n.ay /= n.m
                 n.ay += 0.03
 
+    def _step3(self):
         for p in self.particles:
             for i in range(3):
                 for j in range(3):
@@ -212,11 +190,13 @@ class LiquidTest:
                     n.u += phi * mu
                     n.v += phi * mv
 
+    def _compress_nodes2(self):
         for n in self.active:
             if n.m > 0.0:
                 n.u /= n.m
                 n.v /= n.m
 
+    def _step4(self):
         for p in self.particles:
             gu = 0.0
             gv = 0.0
@@ -243,6 +223,36 @@ class LiquidTest:
                 p.y = (self.gsizeY - 2 - random.random() * 0.01)
                 p.v = 0.0
 
+    def simulate(self):
+        drag = False
+        mdx = mdy = 0.0
+
+        if (self.pressed and self.pressedprev):
+            drag = True
+            mdx = 0.25 * (self.mx - self.mxprev)
+            mdy = 0.25 * (self.my - self.myprev)
+
+        self.pressedprev = self.pressed
+        self.mxprev = self.mx
+        self.myprev = self.my
+
+        for node in self.active:
+            node.__init__()
+        self.active = []
+
+
+        self._step1()
+        
+        self._step2(drag, mdx, mdy)
+        
+        self._compress_nodes()
+        
+        self._step3()
+        
+        self._compress_nodes2()
+
+        self._step4()
+        
 class Node:
     def __init__(self):
         self.m = 0
@@ -256,10 +266,19 @@ class Node:
         self.active = False
     
     def clear(self):
-        self.m = self.d = self.gx = self.gy = self.u = self.v = self.ax = self.ay = 0.0
+        self.m = 0.0
+        self.d = 0.0
+        self.gx = 0.0
+        self.gy = 0.0
+        self.u = 0.0
+        self.v = 0.0
+        self.ax = 0.0
+        self.ay = 0.0
         self.active = False
 
 class Particle:
+    '''Particles are value holders that manage the mathematical and physical
+    attributes of an object'''
     def __init__(self, mat, x, y, u, v):
         self.dudx = 0
         self.dudy = 0
@@ -267,19 +286,50 @@ class Particle:
         self.dvdy = 0
         self.cx = 0
         self.cy = 0
-        self.px = [0,0,0]
-        self.py = [0,0,0]
-        self.gx = [0,0,0]
-        self.gy = [0,0,0]
+        self.px = [0, 0, 0]
+        self.py = [0, 0, 0]
+        self.gx = [0, 0, 0]
+        self.gy = [0, 0, 0]
         
         self.mat = mat
         self.x = x
         self.y = y
         self.u = u
         self.v = v
-        self.color = pygame.Color(0,0,255,255)
+        self.color = pygame.Color(0, 0, 255, 255)
 
 class Material:
+    '''Some of these parameters are hard to explain in one or two sentences 
+    (and a couple I made up) so I'll also link you to their corresponding 
+    Wikipedia pages. One object I like to compare fluids with is springs. 
+    Everybody is familiar with springs. If you pull on them they'll try to go 
+    back to their original shape. Some springs are stronger and some are weaker 
+    (stiffness and elasticity). Some springs will continue to bounce back and 
+    forth for a long time, while others will quickly slow down and stop (bulk 
+    viscosity and viscosity). If you pull hard enough the spring will break.
+
+    Density - Target density for the particles. Higher density makes particles 
+    want to be closer together.
+
+    Stiffness - How compressible the fluid is.
+
+    Bulk viscosity - Kind of like damping. Another effect it will have is that 
+    it'll smooth out shockwaves.
+
+    Elasticity - How fast the fluid will try to return to its original shape.
+
+    Viscosity - Kind of like bulk viscosity only this operates on the shear 
+    components.
+
+    Yield rate - How fast the fluid forgets its shape or melts away. Only 
+    affects things when elasticity is non-zero.
+
+    Gravity - How much the particles will accelerate downwards.
+
+    Smoothing - Smooths the velocity field. Will make things more stable. It is 
+    also useful to have a high smoothing value when simulating elastic 
+    materials.
+    '''
     def __init__(self, m, rd, k, v, d, g):
         self.m = m
         self.rd = rd
@@ -287,16 +337,6 @@ class Material:
         self.v = v
         self.d = d
         self.g = g
-
-def mouseMoved(event):
-    LIQUID_TEST.mx = event.pos[0]
-    LIQUID_TEST.my = event.pos[1]
-
-def mousePressed(event):
-    LIQUID_TEST.pressed = True
-
-def mouseReleased(event):
-    LIQUID_TEST.pressed = False
 
 def main():
     pygame.init()
@@ -312,15 +352,16 @@ def main():
         LIQUID_TEST.paint()
         pygame.display.flip()
         #get events
-        for e in pygame.event.get():
-            if e.type == pygame.locals.QUIT:
+        for event in pygame.event.get():
+            if event.type == pygame.locals.QUIT:
                 return
-            elif e.type == pygame.locals.MOUSEBUTTONDOWN:
-                mousePressed(e)
-            elif e.type == pygame.locals.MOUSEBUTTONUP:
-                mouseReleased(e)
-            elif e.type == pygame.locals.MOUSEMOTION:
-                mouseMoved(e)
+            elif event.type == pygame.locals.MOUSEBUTTONDOWN:
+                LIQUID_TEST.pressed = True
+            elif event.type == pygame.locals.MOUSEBUTTONUP:
+                LIQUID_TEST.pressed = False
+            elif event.type == pygame.locals.MOUSEMOTION:
+                LIQUID_TEST.mx = event.pos[0]
+                LIQUID_TEST.my = event.pos[1]
         # advance simulation
         LIQUID_TEST.simulate()
     
