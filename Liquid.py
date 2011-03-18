@@ -38,7 +38,7 @@ class LiquidTest:
     def __init__ (self, gsizeX, gsizeY, particlesX, particlesY):
         self.gsizeX = gsizeX
         self.gsizeY = gsizeY
-        self.active = [] #Nodes
+        self.active = set()
         self.water = Material(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
         self.pressed = False
         self.pressedprev = False
@@ -88,9 +88,7 @@ class LiquidTest:
             for i in range(3):
                 for j in range(3):
                     n = self.grid[int(p.cx + i)][int(p.cy + j)]
-                    if not n.active:
-                        self.active.append(n)
-                        n.active = True
+                    self.active.add(n)
                     phi = p.px[i] * p.py[j]
                     n.m += phi * p.mat.m
                     n.d += phi
@@ -239,7 +237,7 @@ class LiquidTest:
 
         for node in self.active:
             node.__init__()
-        self.active = []
+        self.active.clear()
 
 
         self._step1()
@@ -264,7 +262,6 @@ class Node:
         self.v = 0
         self.ax = 0
         self.ay = 0
-        self.active = False
     
     def clear(self):
         self.m = 0.0
@@ -275,7 +272,6 @@ class Node:
         self.v = 0.0
         self.ax = 0.0
         self.ay = 0.0
-        self.active = False
 
 class Particle:
     '''Particles are value holders that manage the mathematical and physical
