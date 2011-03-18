@@ -4,7 +4,7 @@ MIT License ( http://www.opensource.org/licenses/mit-license.php )
 
 /**
  * self version:
- * Copyright Stephen Sinclair (radarsat1) ( http://www.music.mcgill.ca/~sinclair )
+ * Copyright Stephen Sinclair (radarsat1) (http://www.music.mcgill.ca/~sinclair)
  * MIT License ( http://www.opensource.org/licenses/mit-license.php )
  * Downloaded from: http://www.music.mcgill.ca/~sinclair/blog
  */
@@ -22,21 +22,15 @@ MIT License ( http://www.opensource.org/licenses/mit-license.php )
  */
 """
 import pygame
-from pygame.locals import *
+import pygame.locals
 import math
 import random
-import cProfile
-
-liquidTest = None
-step = 0
-canvas = None
-running = False
+import time
 
 WIDTH = 100
-HEIGHT = 50
-PARTICLESX = 10
-PARTICLESY = 20
-sum1 = sum2 = sum3 = 0.0
+HEIGHT = 100
+PARTICLESX = 50
+PARTICLESY = 80
 
 class LiquidTest:
     def __init__ (self, gsizeX, gsizeY, particlesX, particlesY):
@@ -52,16 +46,27 @@ class LiquidTest:
         self.myprev = 0.0
 
 
-        self.grid = []
-        self.grid = [[Node() for i in range(self.gsizeY)] 
+        self.grid = [[Node() for j in range(self.gsizeY)] 
             for i in range(self.gsizeX)]
+        
+        '''
+        for i in range(self.gsizeX):
+            self.grid.append([])
+            for j in range(self.gsizeY):
+                self.grid[i].append(Node())
+        '''
         self.particles = [Particle(self.water, i + 4, j + 4, 0.0, 0.0)
-            for j in range(particlesY)
-            for i in range(particlesX)]
+            for j in range(particlesY) for i in range(particlesX)]
+        
+        '''
+        for i in range(particlesX):
+            for j in range(particlesY):
+                self.particles.append(Particle(self.water, i + 4, j + 4, 0.0, 0.0))
+        '''
 
     def paint(self):
         for p in self.particles:
-            pygame.draw.line(canvas, p.color, (4*p.x, 4*p.y,),
+            pygame.draw.line(CANVAS, p.color, (4*p.x, 4*p.y,),
                 (4*(p.x - p.u), 4.0*(p.y - p.v)))
 
     def simulate(self):
@@ -77,7 +82,8 @@ class LiquidTest:
         self.mxprev = self.mx
         self.myprev = self.my
 
-        self.active = []
+        while(len(self.active)):
+            self.active.pop().clear()
 
 
         fx = fy = 0.0
@@ -283,57 +289,40 @@ class Material:
         self.g = g
 
 def mouseMoved(event):
-    liquidTest.mx = event.pos[0]
-    liquidTest.my = event.pos[1]
+    LIQUID_TEST.mx = event.pos[0]
+    LIQUID_TEST.my = event.pos[1]
 
 def mousePressed(event):
-    liquidTest.pressed = True
+    LIQUID_TEST.pressed = True
 
 def mouseReleased(event):
-    liquidTest.pressed = False
+    LIQUID_TEST.pressed = False
 
-def stop():
-    running = False
-
-def start():
-    running = True
-    draw_loop()
-
-def restart(gsizeX, gsizeY, particlesX, particlesY):
-    liquidTest = LiquidTest(gsizeX, gsizeY, particlesX, particlesY)
-    running = True
-    draw_loop()
-
-def draw_loop():
-    running = True
-    step = 0
-    sum1 = sum2 = sum3 = 0
-    while running:
+def main():
+    pygame.init()
+    global CANVAS
+    CANVAS = pygame.display.set_mode((WIDTH*4, HEIGHT*4), pygame.DOUBLEBUF)
+    
+    global LIQUID_TEST
+    LIQUID_TEST = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
+    while True:
         # clear
-        canvas.fill(0, (3, 3, width-4, height-4))
+        CANVAS.fill(0, (3, 3, WIDTH*4-4, HEIGHT*4-4))
         # draw simulation state
-        liquidTest.paint()
+        LIQUID_TEST.paint()
         pygame.display.flip()
         #get events
         for e in pygame.event.get():
-            if e.type == QUIT:
-                return sum1,sum2,sum3
-            elif e.type == MOUSEBUTTONDOWN:
+            if e.type == pygame.locals.QUIT:
+                return
+            elif e.type == pygame.locals.MOUSEBUTTONDOWN:
                 mousePressed(e)
-            elif e.type == MOUSEBUTTONUP:
+            elif e.type == pygame.locals.MOUSEBUTTONUP:
                 mouseReleased(e)
-            elif e.type == MOUSEMOTION:
+            elif e.type == pygame.locals.MOUSEMOTION:
                 mouseMoved(e)
         # advance simulation
-        liquidTest.simulate()
-        step += 1
-
-if __name__ == "__main__":
-    pygame.init()
-    canvas = pygame.display.set_mode((WIDTH*4,HEIGHT*4),pygame.DOUBLEBUF)
-    width = canvas.get_width()
-    height = canvas.get_height()
+        LIQUID_TEST.simulate()
     
-    liquidTest = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
-    cProfile.runctx("start()", globals(), locals(), filename="Liquid.profile")
-
+if __name__ == "__main__":
+    main()
