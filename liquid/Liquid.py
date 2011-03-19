@@ -25,7 +25,7 @@ import pygame
 import pygame.locals
 import math
 import random
-import cProfile
+from line_profiler import LineProfiler
 from array import array
 
 CANVAS = None
@@ -36,9 +36,9 @@ PARTICLESX = 50
 PARTICLESY = 80
 
 class LiquidTest:
-    def __init__ (self, gsizeX, gsizeY, particlesX, particlesY):
-        self.gsizeX = gsizeX
-        self.gsizeY = gsizeY
+    def __init__ (self, width, height, particlesX, particlesY):
+        self.width = width
+        self.height = height
         self.active = set()
         self.water = Material(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
         self.pressed = False
@@ -49,8 +49,8 @@ class LiquidTest:
         self.myprev = 0.0
 
 
-        self.grid = [[Node() for j in range(self.gsizeY)] 
-            for i in range(self.gsizeX)]
+        self.grid = [[Node() for j in range(self.height)] 
+            for i in range(self.width)]
         
         self.particles = [Particle(self.water, i + 4, j + 4, 0.0, 0.0)
             for j in range(particlesY) for i in range(particlesX)]
@@ -62,43 +62,44 @@ class LiquidTest:
                 (4*(p.x - p.u), 4.0*(p.y - p.v)))
 
     def _step1(self):
-        for p in self.particles:
-            p.cx = p.x - 0.5
-            p.cy = p.y - 0.5
-
-            x = float(p.cx - p.x)
-            p.px[0] = (0.5 * x * x + 1.5 * x + 1.125)
-            p.gx[0] = (x + 1.5)
+        for particle in self.particles:
+            particle.cx = int(particle.x - 0.5)
+            particle.cy = int(particle.y - 0.5)
+            
+            x = float(particle.cx - particle.x)
+            particle.px[0] = (0.5 * x * x + 1.5 * x + 1.125)
+            particle.gx[0] = (x + 1.5)
             x += 1.0
-            p.px[1] = (-x * x + 0.75)
-            p.gx[1] = (-2.0 * x)
+            particle.px[1] = (-x * x + 0.75)
+            particle.gx[1] = (-2.0 * x)
             x += 1.0
-            p.px[2] = (0.5 * x * x - 1.5 * x + 1.125)
-            p.gx[2] = (x - 1.5)
+            particle.px[2] = (0.5 * x * x - 1.5 * x + 1.125)
+            particle.gx[2] = (x - 1.5)
 
-            y = float(p.cy - p.y)
-            p.py[0] = (0.5 * y * y + 1.5 * y + 1.125)
-            p.gy[0] = (y + 1.5)
+            y = float(particle.cy - particle.y)
+            particle.py[0] = (0.5 * y * y + 1.5 * y + 1.125)
+            particle.gy[0] = (y + 1.5)
             y += 1.0
-            p.py[1] = (-y * y + 0.75)
-            p.gy[1] = (-2.0 * y)
+            particle.py[1] = (-y * y + 0.75)
+            particle.gy[1] = (-2.0 * y)
             y += 1.0
-            p.py[2] = (0.5 * y * y - 1.5 * y + 1.125)
-            p.gy[2] = (y - 1.5)
+            particle.py[2] = (0.5 * y * y - 1.5 * y + 1.125)
+            particle.gy[2] = (y - 1.5)
+
 
             for i in range(3):
                 for j in range(3):
-                    n = self.grid[int(p.cx + i)][int(p.cy + j)]
-                    if not n in self.active:
+                    n = self.grid[particle.cx + i][particle.cy + j]
+                    if not n.active:
+                        n.active = True
                         self.active.add(n)
-                    phi = p.px[i] * p.py[j]
-                    n.m += phi * p.mat.m
+                    phi = particle.px[i] * particle.py[j]
+                    n.m += phi * particle.material.m
                     n.d += phi
-                    n.gx += p.gx[i] * p.py[j]
-                    n.gy += p.px[i] * p.gy[j]
-    
-    def _step2(self, drag, mdx, mdy):
-        fx = fy = 0.0        
+                    n.gx += particle.gx[i] * particle.py[j]
+                    n.gy += particle.px[i] * particle.gy[j]
+
+    def _step2(self, drag, mdx, mdy):       
         for p in self.particles:
 
             cx = p.x
@@ -143,26 +144,26 @@ class LiquidTest:
             fy = 0.0
 
             if (p.x < 4.0):
-                fx += p.mat.m * (4.0 - p.x)
-            elif (p.x > self.gsizeX - 5):
-                fx += p.mat.m * (self.gsizeX - 5 - p.x)
+                fx += p.material.m * (4.0 - p.x)
+            elif (p.x > self.width - 5):
+                fx += p.material.m * (self.width - 5 - p.x)
 
             if (p.y < 4.0):
-                fy += p.mat.m * (4.0 - p.y)
-            elif (p.y > self.gsizeY - 5):
-                fy += p.mat.m * (self.gsizeY - 5 - p.y)
+                fy += p.material.m * (4.0 - p.y)
+            elif (p.y > self.height - 5):
+                fy += p.material.m * (self.height - 5 - p.y)
 
             if drag:
                 vx = math.fabs(p.x - 0.25 * self.mx)
                 vy = math.fabs(p.y - 0.25 * self.my)
                 if ((vx < 10.0) and (vy < 10.0)):
-                    weight = p.mat.m * (1.0 - vx * 0.10) * (1.0 - vy * 0.10)
+                    weight = p.material.m * (1.0 - vx * 0.10) * (1.0 - vy * 0.10)
                     fx += weight * (mdx - p.u)
                     fy += weight * (mdy - p.v)
 
             for i in range(3):
                 for j in range(3):
-                    n = self.grid[int(p.cx + i)][int(p.cy + j)]
+                    n = self.grid[p.cx + i][p.cy + j]
                     phi = p.px[i] * p.py[j]
                     n.ax += -((p.gx[i] * p.py[j]) * pressure) + fx * phi
                     n.ay += -((p.px[i] * p.gy[j]) * pressure) + fy * phi
@@ -178,15 +179,15 @@ class LiquidTest:
         for p in self.particles:
             for i in range(3):
                 for j in range(3):
-                    n = self.grid[int(p.cx + i)][int(p.cy + j)]
+                    n = self.grid[p.cx + i][p.cy + j]
                     phi = p.px[i] * p.py[j]
                     p.u += phi * n.ax
                     p.v += phi * n.ay
-            mu = p.mat.m * p.u
-            mv = p.mat.m * p.v
+            mu = p.material.m * p.u
+            mv = p.material.m * p.v
             for i in range(3):
                 for j in range(3):
-                    n = self.grid[int(p.cx + i)][int(p.cy + j)]
+                    n = self.grid[p.cx + i][p.cy + j]
                     phi = p.px[i] * p.py[j]
                     n.u += phi * mu
                     n.v += phi * mv
@@ -203,7 +204,7 @@ class LiquidTest:
             gv = 0.0
             for i  in range(3):
                 for j  in range(3):
-                    n = self.grid[int(p.cx + i)][int(p.cy + j)]
+                    n = self.grid[p.cx + i][p.cy + j]
                     phi = p.px[i] * p.py[j]
                     gu += phi * n.u
                     gv += phi * n.v
@@ -214,14 +215,14 @@ class LiquidTest:
             if (p.x < 1.0):
                 p.x = (1.0 + random.random() * 0.01)
                 p.u = 0.0
-            elif (p.x > self.gsizeX - 2):
-                p.x = (self.gsizeX - 2 - random.random() * 0.01)
+            elif (p.x > self.width - 2):
+                p.x = (self.width - 2 - random.random() * 0.01)
                 p.u = 0.0
             if (p.y < 1.0):
                 p.y = (1.0 + random.random() * 0.01)
                 p.v = 0.0
-            elif (p.y > self.gsizeY - 2):
-                p.y = (self.gsizeY - 2 - random.random() * 0.01)
+            elif (p.y > self.height - 2):
+                p.y = (self.height - 2 - random.random() * 0.01)
                 p.v = 0.0
 
     def simulate(self):
@@ -240,7 +241,6 @@ class LiquidTest:
         for node in self.active:
             node.__init__()
         self.active.clear()
-
 
         self._step1()
         
@@ -264,11 +264,12 @@ class Node:
         self.v = 0
         self.ax = 0
         self.ay = 0
+        self.active = False
 
 class Particle:
     '''Particles are value holders that manage the mathematical and physical
     attributes of an object'''
-    def __init__(self, mat, x, y, u, v):
+    def __init__(self, material, x, y, u, v):
         self.dudx = 0
         self.dudy = 0
         self.dvdx = 0
@@ -280,7 +281,7 @@ class Particle:
         self.gx = array('f', [0, 0, 0])
         self.gy = array('f', [0, 0, 0])
         
-        self.mat = mat
+        self.material = material
         self.x = x
         self.y = y
         self.u = u
@@ -353,6 +354,13 @@ def main(n = 200):
                 LIQUID_TEST.my = event.pos[1]
         # advance simulation
         LIQUID_TEST.simulate()
-    
+
+profiler = LineProfiler()
+profiler.add_function(LiquidTest._step1)
+profiler.add_function(LiquidTest._step2)
+profiler.add_function(LiquidTest._step3)
+profiler.add_function(LiquidTest._step4)
 if __name__ == "__main__":
-    cProfile.runctx("main()", globals(), locals(), filename="Liquid.profile")
+    profiler.runctx("main(100)", globals(), locals())
+    stats = open("liquid.flag.txt", 'w')
+    profiler.print_stats(stats)
