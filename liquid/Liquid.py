@@ -26,6 +26,7 @@ import pygame.locals
 import math
 import random
 import cProfile
+from array import array
 
 CANVAS = None
 LIQUID_TEST = None
@@ -65,7 +66,7 @@ class LiquidTest:
             p.cx = p.x - 0.5
             p.cy = p.y - 0.5
 
-            x = p.cx - p.x
+            x = float(p.cx - p.x)
             p.px[0] = (0.5 * x * x + 1.5 * x + 1.125)
             p.gx[0] = (x + 1.5)
             x += 1.0
@@ -75,7 +76,7 @@ class LiquidTest:
             p.px[2] = (0.5 * x * x - 1.5 * x + 1.125)
             p.gx[2] = (x - 1.5)
 
-            y = p.cy - p.y
+            y = float(p.cy - p.y)
             p.py[0] = (0.5 * y * y + 1.5 * y + 1.125)
             p.gy[0] = (y + 1.5)
             y += 1.0
@@ -88,7 +89,8 @@ class LiquidTest:
             for i in range(3):
                 for j in range(3):
                     n = self.grid[int(p.cx + i)][int(p.cy + j)]
-                    self.active.add(n)
+                    if not n in self.active:
+                        self.active.add(n)
                     phi = p.px[i] * p.py[j]
                     n.m += phi * p.mat.m
                     n.d += phi
@@ -262,16 +264,6 @@ class Node:
         self.v = 0
         self.ax = 0
         self.ay = 0
-    
-    def clear(self):
-        self.m = 0.0
-        self.d = 0.0
-        self.gx = 0.0
-        self.gy = 0.0
-        self.u = 0.0
-        self.v = 0.0
-        self.ax = 0.0
-        self.ay = 0.0
 
 class Particle:
     '''Particles are value holders that manage the mathematical and physical
@@ -283,10 +275,10 @@ class Particle:
         self.dvdy = 0
         self.cx = 0
         self.cy = 0
-        self.px = [0, 0, 0]
-        self.py = [0, 0, 0]
-        self.gx = [0, 0, 0]
-        self.gy = [0, 0, 0]
+        self.px = array('f', [0, 0, 0])
+        self.py = array('f', [0, 0, 0])
+        self.gx = array('f', [0, 0, 0])
+        self.gy = array('f', [0, 0, 0])
         
         self.mat = mat
         self.x = x
@@ -335,14 +327,14 @@ class Material:
         self.d = d
         self.g = g
 
-def main():
+def main(n = 200):
     pygame.init()
     global CANVAS
     CANVAS = pygame.display.set_mode((WIDTH*4, HEIGHT*4), pygame.DOUBLEBUF)
     
     global LIQUID_TEST
     LIQUID_TEST = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
-    while True:
+    for i in range(n):
         # clear
         CANVAS.fill(0, (3, 3, WIDTH*4-4, HEIGHT*4-4))
         # draw simulation state
