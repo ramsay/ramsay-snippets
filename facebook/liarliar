@@ -93,11 +93,12 @@ class LiarFilter:
 
 if __name__ == '__main__':
     import sys
+    import re
     liars = LiarFilter()
     with open(sys.argv[1]) as data:
         n = int(data.next())
         for i in range(n):
-            name, count = data.next().split(' ', 1)
+            name, count = re.split("\s+", data.next())[:2]
             count = int(count)
             accused = []
             for j in range(count):
