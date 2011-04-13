@@ -56,7 +56,11 @@ Stephen
 
 Output Specifications
 
-Your output must consist of two numbers separated by a single space and followed by a newline, printed to standard out. The first number is the size of the larger group between the liars and the non-liars. The second number is the size of the smaller group. You are guaranteed that exactly one correct solution exists for all test data.
+Your output must consist of two numbers separated by a single space and
+followed by a newline, printed to standard out. The first number is the
+size of the larger group between the liars and the non-liars. The
+second number is the size of the smaller group. You are guaranteed that
+exactly one correct solution exists for all test data.
 
 Example output:
 3 2
@@ -64,12 +68,19 @@ Example output:
 from __future__ import with_statement
 
 class LiarFilter:
+    '''A liar filter that manages two sets of liars/nonliars. Use
+    LiarFilter.add() to update the sets with a pair of member, lies.
+    When you've added all the info use LiarFilter.final_answer() to
+    sort through undecided data.'''
     def __init__(self):
         self.toms = set()
         self.jerrys = set()
         self.undecided = dict()
 
     def add(self, member, lies):
+        '''Add the member and lies to their matching sets. If sets are
+        empty add member to jerry and lies to toms. If nothing matches
+        add it the undecided dict.'''
         lies = set(lies)
         if (not self.toms and not self.jerrys or lies & self.toms or
             member in self.jerrys):
@@ -84,6 +95,9 @@ class LiarFilter:
         return True
 
     def final_answer(self):
+        '''Filter through the undecided info until we have made
+        everything is decided. Return the size of toms and jerrys as a
+        tuple with the first element larger.'''
         while self.undecided:
             for key in self.undecided:
                 if self.add(key, self.undecided[key]):
@@ -91,18 +105,27 @@ class LiarFilter:
         lengths = [len(self.toms), len(self.jerrys)]
         return (max(lengths), min(lengths))
 
+def main(data):
+    '''Runs through the input file parsing each heading and adding the
+    `name`, `accused` list to our LiarFilter. After parsing the entire
+    file we get a final answer on the size of the two groups and print
+    out the larger number followed by the smaller number.'''
+    liars = LiarFilter()
+    membersize = int(data.next())
+    while membersize:
+        membersize -= 1
+        name, count = re.split("\s+", data.next())[:2]
+        count = int(count)
+        accused = []
+        while count:
+            count -= 1
+            accused.append(data.next().strip())
+        liars.add(name, accused)
+    print "%d %d" % liars.final_answer()
+
 if __name__ == '__main__':
     import sys
     import re
-    liars = LiarFilter()
-    with open(sys.argv[1]) as data:
-        n = int(data.next())
-        for i in range(n):
-            name, count = re.split("\s+", data.next())[:2]
-            count = int(count)
-            accused = []
-            for j in range(count):
-                accused.append(data.next().strip())
-            liars.add(name, accused)
-    print "%d %d" % liars.final_answer()
+    with open(sys.argv[1]) as somefile:
+        main(somefile)
 
