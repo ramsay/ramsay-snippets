@@ -1,0 +1,23 @@
+    10
+adam   1
+billy
+isaac   1
+joe
+george     1
+harry
+dick    1
+ephrim
+billy  1
+charles
+joe 1
+adam
+harry 1
+isaac
+fred 1
+george
+ephrim 1
+fred
+charles 1
+dick
+
+

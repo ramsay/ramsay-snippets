@@ -1,0 +1,23 @@
+    9
+adam   1
+ephrim
+billy   1
+fred
+charles     1
+george
+dick    1
+harry
+ephrim  1
+jon
+fred 1
+kate
+george 1
+larry
+matt 1
+dick
+isaac 4
+adam
+billy
+charles
+dick
+
