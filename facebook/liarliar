@@ -67,42 +67,60 @@ Example output:
 '''
 from __future__ import with_statement
 
+class YinYang:
+    '''A pair of sets who are mutually exculisive.'''
+    def __init__(self):
+        self.yin = set()
+        self.yang = set()
+    def __repr__(self):
+        return str(self.yin) + str(self.yang)
+
 class LiarFilter:
-    '''A liar filter that manages two sets of liars/nonliars. Use
+    '''A liar filter that manages sets of liars/nonliars. Use
     LiarFilter.add() to update the sets with a pair of member, lies.
     When you've added all the info use LiarFilter.final_answer() to
-    sort through undecided data.'''
+    get the sizes of each set.'''
     def __init__(self):
-        self.toms = set()
-        self.jerrys = set()
-        self.undecided = dict()
+        self.pairs = []
 
     def add(self, member, lies):
-        '''Add the member and lies to their matching sets. If sets are
-        empty add member to jerry and lies to toms. If nothing matches
-        add it the undecided dict.'''
+        '''Add the member and lies to their matching sets. If nothing
+        matches create a new pair of sets.'''
         lies = set(lies)
-        if (not self.toms and not self.jerrys or lies & self.toms or
-            member in self.jerrys):
-            self.toms |= lies
-            self.jerrys.add(member)
-        elif lies & self.jerrys or member in self.toms:
-            self.toms.add(member)
-            self.jerrys |= lies
-        else:
-            self.undecided[member] = lies
-            return False
-        return True
+        found = False
+        for group in self.pairs:
+            if lies & group.yin or member in group.yang:
+                group.yin |= lies
+                group.yang.add(member)
+                found = True
+                break
+            elif lies & group.yang or member in group.yin:
+                group.yin.add(member)
+                group.yang |= lies
+                found = True
+                break
+        if  not found:
+            group = YinYang()
+            group.yin.add(member)
+            group.yang |= lies
+            self.pairs.append(group)
 
     def final_answer(self):
-        '''Filter through the undecided info until we have made
-        everything is decided. Return the size of toms and jerrys as a
+        '''Filter through the groups info until we have one unified
+        group. Return the size of yin and yang as a
         tuple with the first element larger.'''
-        while self.undecided:
-            for key in self.undecided:
-                if self.add(key, self.undecided[key]):
-                    self.undecided.pop(key)
-        lengths = [len(self.toms), len(self.jerrys)]
+        final = self.pairs.pop()
+        while self.pairs:
+            group = self.pairs.pop()
+            if final.yin & group.yin or final.yang & group.yang:
+                final.yin |= group.yin
+                final.yang |= group.yang
+            elif final.yin & group.yang or final.yang & group.yin:
+                final.yin |= group.yang
+                final.yang |= group.yin
+            else:
+                self.pairs.insert(0, group)
+        lengths = [len(final.yin), len(final.yang)]
         return (max(lengths), min(lengths))
 
 def main(data):
