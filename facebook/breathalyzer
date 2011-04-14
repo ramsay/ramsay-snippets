@@ -65,13 +65,67 @@ new line.
 Example Output (newline after number):
 8
 '''
-def breathalyzer(sentence, words):
+from __future__ import with_statement
+
+def distance(word1, word2):
+    '''Levenstein distance method'''
+    d = [[i if j==0 else j if i==0 else 0
+        for i in range(len(word1)+1)]
+        for j in range(len(word2)+1)]
+    for j in range(1, len(word1) + 1):
+        for i in range(1, len(word2) + 1):
+            if word1[j-1] == word2[i-1]:
+                d[i][j] = d[i-1][j-1]
+            else:
+                d[i][j] = min([d[i-1][j], d[i][j-1], d[i-1][j-1]]) + 1
+    return d[-1][-1]
+
+'''
+D A B =
+   let rec
+   and MainDiag = OneDiag  A B (hd Uppers) (-1 . (hd Lowers))
+   and Uppers   = EachDiag A B (MainDiag.Uppers)  {upper diagonals}
+   and Lowers   = EachDiag B A (MainDiag.Lowers)  {lower diagonals}
+                                                  {note swap B A !}
+
+   and OneDiag A B diagAbove diagBelow =
+         let rec
+             DoDiag []       B        NW N W = []  ||
+             DoDiag A        []       NW N W = []  ||
+             DoDiag (Ach.As) (Bch.Bs) NW N W =
+               let me = if Ach = Bch then NW
+                        else 1 + min3 (hd W) NW (hd N)   {see below}
+               in me . (DoDiag As Bs me (tl N) (tl W))  {along diag}
+                           {hope these   ^^^^   ^^^^  not evaluated}
+
+         and firstelt = 1 + hd diagBelow
+         and thisdiag =
+              firstelt.(DoDiag A B firstelt diagAbove (tl diagBelow))
+
+         in thisdiag
+
+   and EachDiag A []       Diags            = []  ||
+       EachDiag A (Bch.Bs) (LastDiag.Diags) =
+         let NextDiag = hd(tl Diags)
+         in  (OneDiag  A Bs NextDiag LastDiag) {one diag &}
+           . (EachDiag A Bs Diags)             {the others}
+
+   and LAB = (length A) - (length B)
+
+   in last (if      LAB=0 then MainDiag
+            else if LAB>0 then select   LAB  Lowers
+            else   {LAB<0}     select (-LAB) Uppers )
+
+'''
+
+def breathalyzer(post, words):
     '''Give the cumulaitive Levenshtein distance of the wall post from
     the word list.'''
-    return 0
-
+    sentence = post.split(' ')
+    for w in words:
+        delta = map(sentence, distance(w))
 if __name__ == '__main__':
     import sys
     with open('/var/tmp/twl06.txt') as wordlist:
         with open(sys.argv[1]) as wallpost:
-            breathalyzer(wallpost, wordlist)
+            breathalyzer(wallpost.read(), wordlist)
