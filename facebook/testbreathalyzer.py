@@ -12,7 +12,7 @@ def TestDistance():
     assert(breathalyzer.distance("GOUD", "GOOD") == 1)
 
 
-def TestBreathalyzer():
+def TestFacebook():
     post = open("breathalyzer.txt").read()
     assert(breathalyzer.breathalyzer(post, dictionary)==8)
 
@@ -24,6 +24,26 @@ def Test187():
     post = open("187.in").read()
     assert(breathalyzer.breathalyzer(post, dictionary)==187)
 
+def TestDict():
+    '''Tests a post that is just all of the words in the
+    dictionary'''
+    post = open("twl06.txt").read()
+    post.replace('\n', ' ')
+    assert(breathalyzer.breathalyzer(post, dictionary)==0)
+
 if __name__ == '__main__':
+    import time
     TestDistance()
+
+    print "Test4: ",
+    t = time.time()
     Test4()
+    print time.time()-t
+    print "TestFacebook: ",
+    t = time.time()
+    TestFacebook()
+    print time.time()-t
+    print "Test187: ",
+    t = time.time()
+    Test187()
+    print time.time()-t

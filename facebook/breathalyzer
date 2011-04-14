@@ -80,23 +80,32 @@ def distance(word1, word2):
                 d[i][j] = min([d[i-1][j], d[i][j-1], d[i-1][j-1]]) + 1
     return d[-1][-1]
 
+def search_set(dictionary, pivot, radius = 0):
+    upper = set()
+    lower = set()
+    if pivot + radius in dictionary.keys():
+        upper = set(dictionary[pivot+radius])
+    if pivot - radius in dictionary.keys():
+        lower = set(dictionary[pivot-radius])
+    return upper | lower
+
 def breathalyzer(post, words):
     '''Give the cumulaitive Levenshtein distance of the wall post from
     the word list.'''
     sentence = post.strip().upper().split(' ')
-    identity = set(''.join(sentence))
-    print sentence
-    print identity
     distances = []
     for w in sentence:
         distances.append(0)
-        if w in words[len(w)]:
+        if w in search_set(words, len(w)):
             continue
-        distances[-1] = min(map(lambda x: distance(x,w), words[len(w)]))
-        span = 1
+        span = 0
+        while not search_set(words, len(w), span):
+            span += 1
+        distances[-1] = min(map(lambda x: distance(x,w),
+            search_set(words, len(w), span)))
         while distances[-1] > span:
             distances[-1] = min(map(lambda x: distance(x,w),
-                words[len(w)-span] + words[len(w)+span]))
+                search_set(words, len(w), span)))
             span += 1
     print distances
     return sum(distances, 0)
