@@ -1,4 +1,6 @@
 import breathalyzer
+import cPickle
+dictionary = cPickle.load(open("dict.txt", 'rb'))
 
 def TestDistance():
     assert(breathalyzer.distance("a", "a") == 0)
@@ -11,10 +13,17 @@ def TestDistance():
 
 
 def TestBreathalyzer():
-    wordlist = open("twl06.txt")
     post = open("breathalyzer.txt").read()
-    assert(breathalyzer.breathalyzer(post, wordlist)==8)
+    assert(breathalyzer.breathalyzer(post, dictionary)==8)
+
+def Test4():
+    post = open("4.in").read()
+    assert(breathalyzer.breathalyzer(post, dictionary)==4)
+
+def Test187():
+    post = open("187.in").read()
+    assert(breathalyzer.breathalyzer(post, dictionary)==187)
 
 if __name__ == '__main__':
     TestDistance()
-    TestBreathalyzer()
+    Test4()
