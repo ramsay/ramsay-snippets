@@ -3,3 +3,4 @@
 .pydevproject
 *.pyc
 /Liquid.profile
+/facebook/breathalyzer.py
