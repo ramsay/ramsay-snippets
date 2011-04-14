@@ -80,44 +80,6 @@ def distance(word1, word2):
                 d[i][j] = min([d[i-1][j], d[i][j-1], d[i-1][j-1]]) + 1
     return d[-1][-1]
 
-'''
-D A B =
-   let rec
-   and MainDiag = OneDiag  A B (hd Uppers) (-1 . (hd Lowers))
-   and Uppers   = EachDiag A B (MainDiag.Uppers)  {upper diagonals}
-   and Lowers   = EachDiag B A (MainDiag.Lowers)  {lower diagonals}
-                                                  {note swap B A !}
-
-   and OneDiag A B diagAbove diagBelow =
-         let rec
-             DoDiag []       B        NW N W = []  ||
-             DoDiag A        []       NW N W = []  ||
-             DoDiag (Ach.As) (Bch.Bs) NW N W =
-               let me = if Ach = Bch then NW
-                        else 1 + min3 (hd W) NW (hd N)   {see below}
-               in me . (DoDiag As Bs me (tl N) (tl W))  {along diag}
-                           {hope these   ^^^^   ^^^^  not evaluated}
-
-         and firstelt = 1 + hd diagBelow
-         and thisdiag =
-              firstelt.(DoDiag A B firstelt diagAbove (tl diagBelow))
-
-         in thisdiag
-
-   and EachDiag A []       Diags            = []  ||
-       EachDiag A (Bch.Bs) (LastDiag.Diags) =
-         let NextDiag = hd(tl Diags)
-         in  (OneDiag  A Bs NextDiag LastDiag) {one diag &}
-           . (EachDiag A Bs Diags)             {the others}
-
-   and LAB = (length A) - (length B)
-
-   in last (if      LAB=0 then MainDiag
-            else if LAB>0 then select   LAB  Lowers
-            else   {LAB<0}     select (-LAB) Uppers )
-
-'''
-
 def breathalyzer(post, words):
     '''Give the cumulaitive Levenshtein distance of the wall post from
     the word list.'''
@@ -126,21 +88,23 @@ def breathalyzer(post, words):
     print sentence
     print identity
     distances = []
-    for w in words:
-        w = w.strip()
-        if not set(w) & identity:
+    for w in sentence:
+        distances.append(0)
+        if w in words[len(w)]:
             continue
-        delta = map(lambda x: distance(x,w), sentence)
-        if distances:
-            distances = [min(pair) for pair in zip(distances, delta)]
-        else:
-            distances = delta
+        distances[-1] = min(map(lambda x: distance(x,w), words[len(w)]))
+        span = 1
+        while distances[-1] > span:
+            distances[-1] = min(map(lambda x: distance(x,w),
+                words[len(w)-span] + words[len(w)+span]))
+            span += 1
     print distances
-    return reduce(lambda x, y: x+y, distances, 0)
+    return sum(distances, 0)
 
 
 if __name__ == '__main__':
     import sys
-    with open('/var/tmp/twl06.txt') as wordlist:
-        with open(sys.argv[1]) as wallpost:
-            breathalyzer(wallpost.read(), wordlist)
+    import cPickle
+    dictionary = cPickle.load(open("dict.txt", 'rb'))
+    with open(sys.argv[1]) as wallpost:
+        breathalyzer(wallpost.read(), dictionary)
