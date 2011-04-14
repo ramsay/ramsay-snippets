@@ -68,7 +68,7 @@ Example Output (newline after number):
 from __future__ import with_statement
 
 def distance(word1, word2):
-    '''Levenstein distance method'''
+    '''Levenshtein distance method'''
     d = [[i if j==0 else j if i==0 else 0
         for i in range(len(word1)+1)]
         for j in range(len(word2)+1)]
@@ -121,9 +121,24 @@ D A B =
 def breathalyzer(post, words):
     '''Give the cumulaitive Levenshtein distance of the wall post from
     the word list.'''
-    sentence = post.split(' ')
+    sentence = post.strip().upper().split(' ')
+    identity = set(''.join(sentence))
+    print sentence
+    print identity
+    distances = []
     for w in words:
-        delta = map(sentence, distance(w))
+        w = w.strip()
+        if not set(w) & identity:
+            continue
+        delta = map(lambda x: distance(x,w), sentence)
+        if distances:
+            distances = [min(pair) for pair in zip(distances, delta)]
+        else:
+            distances = delta
+    print distances
+    return reduce(lambda x, y: x+y, distances, 0)
+
+
 if __name__ == '__main__':
     import sys
     with open('/var/tmp/twl06.txt') as wordlist:
