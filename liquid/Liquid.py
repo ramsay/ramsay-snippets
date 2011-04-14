@@ -25,8 +25,8 @@ import pygame
 import pygame.locals
 import math
 import random
-from line_profiler import LineProfiler
-from array import array
+#from line_profiler import LineProfiler
+import numpy
 
 CANVAS = None
 LIQUID_TEST = None
@@ -61,7 +61,7 @@ class LiquidTest:
     def paint(self):
         for p in self.particles:
             pygame.draw.line(CANVAS, p.color, (4*p.x, 4*p.y,),
-                (4*(p.x - p.u), 4.0*(p.y - p.v)))
+                (4*(p.x - p.u), 4*(p.y - p.v)))
 
     def _step1(self):
         for particle in self.particles:
@@ -272,16 +272,12 @@ class Particle:
     '''Particles are value holders that manage the mathematical and physical
     attributes of an object'''
     def __init__(self, material, x, y, u, v):
-        self.dudx = 0
-        self.dudy = 0
-        self.dvdx = 0
-        self.dvdy = 0
         self.cx = 0
         self.cy = 0
-        self.px = array('f', [0, 0, 0])
-        self.py = array('f', [0, 0, 0])
-        self.gx = array('f', [0, 0, 0])
-        self.gy = array('f', [0, 0, 0])
+        self.px = numpy.array([0.0, 0.0, 0.0])
+        self.py = numpy.array([0.0, 0.0, 0.0])
+        self.gx = numpy.array([0.0, 0.0, 0.0])
+        self.gy = numpy.array([0.0, 0.0, 0.0])
         
         self.material = material
         self.x = x
@@ -357,12 +353,17 @@ def main(n = 200):
         # advance simulation
         LIQUID_TEST.simulate()
 
-profiler = LineProfiler()
-profiler.add_function(LiquidTest._step1)
-profiler.add_function(LiquidTest._step2)
-profiler.add_function(LiquidTest._step3)
-profiler.add_function(LiquidTest._step4)
 if __name__ == "__main__":
-    profiler.runctx("main(100)", globals(), locals())
-    stats = open("liquid.txt", 'w')
-    profiler.print_stats(stats)
+    import sys
+    if sys.argv[-1].lower() == "profile":
+        profiler = LineProfiler()
+        profiler.add_function(LiquidTest._step1)
+        profiler.add_function(LiquidTest._step2)
+        profiler.add_function(LiquidTest._step3)
+        profiler.add_function(LiquidTest._step4)
+
+        profiler.runctx("main(100)", globals(), locals())
+        stats = open("liquid.txt", 'w')
+        profiler.print_stats(stats)
+    else:
+        main(500)

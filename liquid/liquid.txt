@@ -2,109 +2,109 @@ Timer unit: 1e-06 s
 
 File: Liquid.py
 Function: _step1 at line 66
-Total time: 53.6235 s
+Total time: 72.7759 s
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
     66                                               def _step1(self):
-    67    400100       428981      1.1      0.8          for particle in self.particles:
-    68    400000       719369      1.8      1.3              particle.cx = int(particle.x - 0.5)
-    69    400000       603621      1.5      1.1              particle.cy = int(particle.y - 0.5)
+    67    400100       453765      1.1      0.6          for particle in self.particles:
+    68    400000      1233466      3.1      1.7              particle.cx = int(particle.x - 0.5)
+    69    400000      1028887      2.6      1.4              particle.cy = int(particle.y - 0.5)
     70                                                       
-    71    400000       582869      1.5      1.1              x = float(particle.cx - particle.x)
-    72    400000       656446      1.6      1.2              particle.px[0] = 0.5 * x * x + 1.5 * x + 1.125
-    73    400000       517953      1.3      1.0              particle.gx[0] = x + 1.5
-    74    400000       447333      1.1      0.8              x += 1.0
-    75    400000       556863      1.4      1.0              particle.px[1] = -x * x + 0.75
-    76    400000       506172      1.3      0.9              particle.gx[1] = -2.0 * x
-    77    400000       430138      1.1      0.8              x += 1.0
-    78    400000       620223      1.6      1.2              particle.px[2] = 0.5 * x * x - 1.5 * x + 1.125
-    79    400000       525523      1.3      1.0              particle.gx[2] = x - 1.5
+    71    400000      1111137      2.8      1.5              x = float(particle.cx - particle.x)
+    72    400000       804476      2.0      1.1              particle.px[0] = 0.5 * x * x + 1.5 * x + 1.125
+    73    400000       581909      1.5      0.8              particle.gx[0] = x + 1.5
+    74    400000       486507      1.2      0.7              x += 1.0
+    75    400000       570396      1.4      0.8              particle.px[1] = -x * x + 0.75
+    76    400000       518105      1.3      0.7              particle.gx[1] = -2.0 * x
+    77    400000       467875      1.2      0.6              x += 1.0
+    78    400000       622342      1.6      0.9              particle.px[2] = 0.5 * x * x - 1.5 * x + 1.125
+    79    400000       529957      1.3      0.7              particle.gx[2] = x - 1.5
     80                                           
-    81    400000       563995      1.4      1.1              y = float(particle.cy - particle.y)
-    82    400000       612079      1.5      1.1              particle.py[0] = 0.5 * y * y + 1.5 * y + 1.125
-    83    400000       504416      1.3      0.9              particle.gy[0] = y + 1.5
-    84    400000       445405      1.1      0.8              y += 1.0
-    85    400000       554228      1.4      1.0              particle.py[1] = -y * y + 0.75
-    86    400000       506301      1.3      0.9              particle.gy[1] = -2.0 * y
-    87    400000       431738      1.1      0.8              y += 1.0
-    88    400000       615993      1.5      1.1              particle.py[2] = 0.5 * y * y - 1.5 * y + 1.125
-    89    400000       528247      1.3      1.0              particle.gy[2] = y - 1.5
+    81    400000      1078512      2.7      1.5              y = float(particle.cy - particle.y)
+    82    400000       704403      1.8      1.0              particle.py[0] = 0.5 * y * y + 1.5 * y + 1.125
+    83    400000       548654      1.4      0.8              particle.gy[0] = y + 1.5
+    84    400000       474625      1.2      0.7              y += 1.0
+    85    400000       562314      1.4      0.8              particle.py[1] = -y * y + 0.75
+    86    400000       518321      1.3      0.7              particle.gy[1] = -2.0 * y
+    87    400000       470736      1.2      0.6              y += 1.0
+    88    400000       623042      1.6      0.9              particle.py[2] = 0.5 * y * y - 1.5 * y + 1.125
+    89    400000       535788      1.3      0.7              particle.gy[2] = y - 1.5
     90                                           
     91                                           
-    92   1600000      1775895      1.1      3.3              for i in RANGE:
-    93   4800000      5427508      1.1     10.1                  for j in RANGE:
-    94   3600000      4754346      1.3      8.9                      n = self.grid[particle.cx + i][particle.cy + j]
-    95   3600000      4372280      1.2      8.2                      if not n.active:
-    96    348580       401574      1.2      0.7                          n.active = True
-    97    348580      1040425      3.0      1.9                          self.active.add(n)
-    98   3600000      4750586      1.3      8.9                      phi = particle.px[i] * particle.py[j]
-    99   3600000      5056227      1.4      9.4                      n.m += phi * particle.material.m
-   100   3600000      4366582      1.2      8.1                      n.d += phi
-   101   3600000      5105804      1.4      9.5                      n.gx += particle.gx[i] * particle.py[j]
-   102   3600000      5214388      1.4      9.7                      n.gy += particle.px[i] * particle.gy[j]
+    92   1600000      1899329      1.2      2.6              for i in RANGE:
+    93   4800000      5862354      1.2      8.1                  for j in RANGE:
+    94   3600000      5277939      1.5      7.3                      n = self.grid[particle.cx + i][particle.cy + j]
+    95   3600000      5001265      1.4      6.9                      if not n.active:
+    96    347700       439193      1.3      0.6                          n.active = True
+    97    347700      1251348      3.6      1.7                          self.active.add(n)
+    98   3600000      6534731      1.8      9.0                      phi = particle.px[i] * particle.py[j]
+    99   3600000     10256593      2.8     14.1                      n.m += phi * particle.material.m
+   100   3600000      6258577      1.7      8.6                      n.d += phi
+   101   3600000      8115363      2.3     11.2                      n.gx += particle.gx[i] * particle.py[j]
+   102   3600000      7953979      2.2     10.9                      n.gy += particle.px[i] * particle.gy[j]
 
 File: Liquid.py
 Function: _step2 at line 104
-Total time: 58.8696 s
+Total time: 103.297 s
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
    104                                               def _step2(self, drag, mdx, mdy):       
-   105    400100       531529      1.3      0.9          for p in self.particles:
+   105    400100       603611      1.5      0.6          for p in self.particles:
    106                                           
-   107    400000       587394      1.5      1.0              cx = p.x
-   108    400000       537338      1.3      0.9              cy = p.y
-   109    400000       559526      1.4      1.0              cxi = cx + 1
-   110    400000       522347      1.3      0.9              cyi = cy + 1
+   107    400000       676981      1.7      0.7              cx = p.x
+   108    400000       614212      1.5      0.6              cy = p.y
+   109    400000      1097424      2.7      1.1              cxi = cx + 1
+   110    400000       983455      2.5      1.0              cyi = cy + 1
    111                                           
-   112    400000       768979      1.9      1.3              n01 = self.grid[int(cx)][int(cy)]
-   113    400000       720142      1.8      1.2              n02 = self.grid[int(cx)][int(cyi)]
-   114    400000       729694      1.8      1.2              n11 = self.grid[int(cxi)][int(cy)]
-   115    400000       721504      1.8      1.2              n12 = self.grid[int(cxi)][int(cyi)]
+   112    400000       982030      2.5      1.0              n01 = self.grid[int(cx)][int(cy)]
+   113    400000       816393      2.0      0.8              n02 = self.grid[int(cx)][int(cyi)]
+   114    400000       875364      2.2      0.8              n11 = self.grid[int(cxi)][int(cy)]
+   115    400000       819853      2.0      0.8              n12 = self.grid[int(cxi)][int(cyi)]
    116                                           
-   117    400000       623499      1.6      1.1              pdx = n11.d - n01.d
-   118    400000       573247      1.4      1.0              pdy = n02.d - n01.d
-   119    400000       683324      1.7      1.2              C20 = 3.0 * pdx - n11.gx - 2.0 * n01.gx
-   120    400000       646110      1.6      1.1              C02 = 3.0 * pdy - n02.gy - 2.0 * n01.gy
-   121    400000       631151      1.6      1.1              C30 = -2.0 * pdx + n11.gx + n01.gx
-   122    400000       590980      1.5      1.0              C03 = -2.0 * pdy + n02.gy + n01.gy
-   123    400000       606823      1.5      1.0              csum1 = n01.d + n01.gy + C02 + C03
-   124    400000       591636      1.5      1.0              csum2 = n01.d + n01.gx + C20 + C30
-   125    400000       783078      2.0      1.3              C21 = 3.0 * n12.d - 2.0 * n02.gx - n12.gx - 3.0 * csum1 - C20
-   126    400000       699643      1.7      1.2              C31 = -2.0 * n12.d + n02.gx + n12.gx + 2.0 * csum1 - C30
-   127    400000       730711      1.8      1.2              C12 = 3.0 * n12.d - 2.0 * n11.gy - n12.gy - 3.0 * csum2 - C02
-   128    400000       695201      1.7      1.2              C13 = -2.0 * n12.d + n11.gy + n12.gy + 2.0 * csum2 - C03
-   129    400000       624216      1.6      1.1              C11 = n02.gx - C13 - C12 - n01.gx
+   117    400000       905895      2.3      0.9              pdx = n11.d - n01.d
+   118    400000       768975      1.9      0.7              pdy = n02.d - n01.d
+   119    400000      1689297      4.2      1.6              C20 = 3.0 * pdx - n11.gx - 2.0 * n01.gx
+   120    400000      1552751      3.9      1.5              C02 = 3.0 * pdy - n02.gy - 2.0 * n01.gy
+   121    400000      1226605      3.1      1.2              C30 = -2.0 * pdx + n11.gx + n01.gx
+   122    400000      1209285      3.0      1.2              C03 = -2.0 * pdy + n02.gy + n01.gy
+   123    400000       978162      2.4      0.9              csum1 = n01.d + n01.gy + C02 + C03
+   124    400000       953717      2.4      0.9              csum2 = n01.d + n01.gx + C20 + C30
+   125    400000      2181147      5.5      2.1              C21 = 3.0 * n12.d - 2.0 * n02.gx - n12.gx - 3.0 * csum1 - C20
+   126    400000      1781413      4.5      1.7              C31 = -2.0 * n12.d + n02.gx + n12.gx + 2.0 * csum1 - C30
+   127    400000      2116115      5.3      2.0              C12 = 3.0 * n12.d - 2.0 * n11.gy - n12.gy - 3.0 * csum2 - C02
+   128    400000      1760164      4.4      1.7              C13 = -2.0 * n12.d + n11.gy + n12.gy + 2.0 * csum2 - C03
+   129    400000       991459      2.5      1.0              C11 = n02.gx - C13 - C12 - n01.gx
    130                                           
-   131    400000       564334      1.4      1.0              u = p.x - cx
-   132    400000       560359      1.4      1.0              u2 = u * u
-   133    400000       546384      1.4      0.9              u3 = u * u2
-   134    400000       583792      1.5      1.0              v = p.y - cy
-   135    400000       553272      1.4      0.9              v2 = v * v
-   136    400000       545513      1.4      0.9              v3 = v * v2
+   131    400000       738349      1.8      0.7              u = p.x - cx
+   132    400000       720473      1.8      0.7              u2 = u * u
+   133    400000       709661      1.8      0.7              u3 = u * u2
+   134    400000       733865      1.8      0.7              v = p.y - cy
+   135    400000       710062      1.8      0.7              v2 = v * v
+   136    400000       700219      1.8      0.7              v3 = v * v2
    137                                                       density = (n01.d + n01.gx * u + n01.gy * v + C20 * u2 + C02 * v2 + 
    138                                                           C30 * u3 + C03 * v3 + C21 * u2 * v + C31 * u3 * v + C12 * u * 
-   139    400000      1041368      2.6      1.8                  v2 + C13 * u * v3 + C11 * u * v)
+   139    400000      3633239      9.1      3.5                  v2 + C13 * u * v3 + C11 * u * v)
    140                                           
-   141    400000       554470      1.4      0.9              pressure = density - 1.0
-   142    400000       588975      1.5      1.0              if pressure > 2.0:
-   143     35458        47789      1.3      0.1                  pressure = 2.0
+   141    400000      1009932      2.5      1.0              pressure = density - 1.0
+   142    400000       958872      2.4      0.9              if pressure > 2.0:
+   143     35525        57047      1.6      0.1                  pressure = 2.0
    144                                           
-   145    400000       532352      1.3      0.9              fx = 0.0
-   146    400000       522754      1.3      0.9              fy = 0.0
+   145    400000       617426      1.5      0.6              fx = 0.0
+   146    400000       594797      1.5      0.6              fy = 0.0
    147                                           
-   148    400000       625981      1.6      1.1              if p.x < 4.0:
-   149      5579        10383      1.9      0.0                  fx += p.material.m * (4.0 - p.x)
-   150    394421       642585      1.6      1.1              elif p.x > self.width:
+   148    400000       947882      2.4      0.9              if p.x < 4.0:
+   149      5599        25515      4.6      0.0                  fx += p.material.m * (4.0 - p.x)
+   150    394401      1041228      2.6      1.0              elif p.x > self.width:
    151                                                           fx += p.material.m * (self.width - p.x)
    152                                           
-   153    400000       615723      1.5      1.0              if p.y < 4.0:
+   153    400000       952672      2.4      0.9              if p.y < 4.0:
    154                                                           fy += p.material.m * (4.0 - p.y)
-   155    400000       633882      1.6      1.1              elif p.y > self.height:
+   155    400000      1006319      2.5      1.0              elif p.y > self.height:
    156                                                           fy += p.material.m * (self.height - p.y)
    157                                           
-   158    400000       588473      1.5      1.0              if drag:
+   158    400000       690233      1.7      0.7              if drag:
    159                                                           vx = math.fabs(p.x - 0.25 * self.mx)
    160                                                           vy = math.fabs(p.y - 0.25 * self.my)
    161                                                           if  vx < 10.0 > vy:
@@ -112,66 +112,73 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    163                                                               fx += weight * (mdx - p.u)
    164                                                               fy += weight * (mdy - p.v)
    165                                           
-   166   1600000      2280324      1.4      3.9              for i in RANGE:
-   167   4800000      6898832      1.4     11.7                  for j in RANGE:
-   168   3600000      5868513      1.6     10.0                      n = self.grid[p.cx + i][p.cy + j]
-   169   3600000      5875382      1.6     10.0                      phi = p.px[i] * p.py[j]
-   170   3600000      7079666      2.0     12.0                      n.ax += -(p.gx[i] * p.py[j] * pressure) + fx * phi
-   171   3600000      6950430      1.9     11.8                      n.ay += -(p.px[i] * p.gy[j] * pressure) + fy * phi
+   166    400000       646933      1.6      0.6              matrix = [[(-(p.gx[i] * p.py[j] * pressure) + fx * p.px[i] * p.py[j],
+   167                                                           -(p.px[i] * p.gy[j] * pressure) + fy * p.px[i] * p.py[j])
+   168                                                           for j in RANGE] 
+   169   5200000     27416274      5.3     26.5                  for i in RANGE]
+   170                                                       
+   171   1600000      2597679      1.6      2.5              for i in RANGE:
+   172   4800000      7978260      1.7      7.7                  for j in RANGE:
+   173   3600000      6776667      1.9      6.6                      n = self.grid[p.cx + i][p.cy + j]
+   174                                                               #phi = p.px[i] * p.py[j]
+   175                                                               #n.ax += -(p.gx[i] * p.py[j] * pressure) + fx * phi
+   176                                                               #n.ay += -(p.px[i] * p.gy[j] * pressure) + fy * phi
+   177   3600000      8382237      2.3      8.1                      n.ax += matrix[i][j][0]
+   178   3600000      8066497      2.2      7.8                      n.ay += matrix[i][j][1]
 
 File: Liquid.py
-Function: _step3 at line 180
-Total time: 35.8187 s
+Function: _step3 at line 187
+Total time: 50.4229 s
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
-   180                                               def _step3(self):
-   181    400100       262564      0.7      0.7          for p in self.particles:
-   182   1600000      1063143      0.7      3.0              for i in RANGE:
-   183   4800000      3205400      0.7      8.9                  for j in RANGE:
-   184   3600000      3252418      0.9      9.1                      n = self.grid[p.cx + i][p.cy + j]
-   185   3600000      3197307      0.9      8.9                      phi = p.px[i] * p.py[j]
-   186   3600000      3361343      0.9      9.4                      p.u += phi * n.ax
-   187   3600000      3275756      0.9      9.1                      p.v += phi * n.ay
-   188    400000       353109      0.9      1.0              mu = p.material.m * p.u
-   189    400000       319699      0.8      0.9              mv = p.material.m * p.v
-   190   1600000      1092102      0.7      3.0              for i in RANGE:
-   191   4800000      3384103      0.7      9.4                  for j in RANGE:
-   192   3600000      3306207      0.9      9.2                      n = self.grid[p.cx + i][p.cy + j]
-   193   3600000      3228025      0.9      9.0                      phi = p.px[i] * p.py[j]
-   194   3600000      3266616      0.9      9.1                      n.u += phi * mu
-   195   3600000      3250870      0.9      9.1                      n.v += phi * mv
+   187                                               def _step3(self):
+   188    400100       288259      0.7      0.6          for p in self.particles:
+   189   1600000      1159134      0.7      2.3              for i in RANGE:
+   190   4800000      3540507      0.7      7.0                  for j in RANGE:
+   191   3600000      3640717      1.0      7.2                      n = self.grid[p.cx + i][p.cy + j]
+   192   3600000      4730749      1.3      9.4                      phi = p.px[i] * p.py[j]
+   193   3600000      5638377      1.6     11.2                      p.u += phi * n.ax
+   194   3600000      5364843      1.5     10.6                      p.v += phi * n.ay
+   195    400000       812439      2.0      1.6              mu = p.material.m * p.u
+   196    400000       699965      1.7      1.4              mv = p.material.m * p.v
+   197   1600000      1232247      0.8      2.4              for i in RANGE:
+   198   4800000      3748397      0.8      7.4                  for j in RANGE:
+   199   3600000      3568974      1.0      7.1                      n = self.grid[p.cx + i][p.cy + j]
+   200   3600000      4739826      1.3      9.4                      phi = p.px[i] * p.py[j]
+   201   3600000      5731896      1.6     11.4                      n.u += phi * mu
+   202   3600000      5526582      1.5     11.0                      n.v += phi * mv
 
 File: Liquid.py
-Function: _step4 at line 203
-Total time: 23.7737 s
+Function: _step4 at line 210
+Total time: 33.5516 s
 
 Line #      Hits         Time  Per Hit   % Time  Line Contents
 ==============================================================
-   203                                               def _step4(self):
-   204    400100       326772      0.8      1.4          for p in self.particles:
-   205    400000       309302      0.8      1.3              gu = 0.0
-   206    400000       304722      0.8      1.3              gv = 0.0
-   207   1600000      1323680      0.8      5.6              for i  in RANGE:
-   208   4800000      3927120      0.8     16.5                  for j  in RANGE:
-   209   3600000      3718570      1.0     15.6                      n = self.grid[p.cx + i][p.cy + j]
-   210   3600000      3695395      1.0     15.5                      phi = p.px[i] * p.py[j]
-   211   3600000      3375962      0.9     14.2                      gu += phi * n.u
-   212   3600000      3330926      0.9     14.0                      gv += phi * n.v
-   213    400000       416213      1.0      1.8              p.x += gu
-   214    400000       395252      1.0      1.7              p.y += gv
-   215    400000       459334      1.1      1.9              p.u += 1.0 * (gu - p.u)
-   216    400000       441209      1.1      1.9              p.v += 1.0 * (gv - p.v)
-   217    400000       405999      1.0      1.7              if p.x < 1.0:
-   218                                                           p.x = 1.0 + random.random() * 0.01
-   219                                                           p.u = 0.0
-   220    400000       437362      1.1      1.8              elif p.x > self.width - 2:
-   221      4071         5457      1.3      0.0                  p.x = self.width - 2 - random.random() * 0.01
-   222      4071         3607      0.9      0.0                  p.u = 0.0
-   223    400000       393021      1.0      1.7              if p.y < 1.0:
-   224                                                           p.y = 1.0 + random.random() * 0.01
-   225                                                           p.v = 0.0
-   226    400000       422430      1.1      1.8              elif p.y > self.height - 2:
-   227     38104        49220      1.3      0.2                  p.y = self.height - 2 - random.random() * 0.01
-   228     38104        32148      0.8      0.1                  p.v = 0.0
+   210                                               def _step4(self):
+   211    400100       374556      0.9      1.1          for p in self.particles:
+   212    400000       329092      0.8      1.0              gu = 0.0
+   213    400000       330956      0.8      1.0              gv = 0.0
+   214   1600000      1388237      0.9      4.1              for i  in RANGE:
+   215   4800000      4166393      0.9     12.4                  for j  in RANGE:
+   216   3600000      4040146      1.1     12.0                      n = self.grid[p.cx + i][p.cy + j]
+   217   3600000      5260472      1.5     15.7                      phi = p.px[i] * p.py[j]
+   218   3600000      5778278      1.6     17.2                      gu += phi * n.u
+   219   3600000      5598383      1.6     16.7                      gv += phi * n.v
+   220    400000       564580      1.4      1.7              p.x += gu
+   221    400000       556911      1.4      1.7              p.y += gv
+   222    400000      1084861      2.7      3.2              p.u += 1.0 * (gu - p.u)
+   223    400000      1010910      2.5      3.0              p.v += 1.0 * (gv - p.v)
+   224    400000       702892      1.8      2.1              if p.x < 1.0:
+   225                                                           p.x = 1.0 + random.random() * 0.01
+   226                                                           p.u = 0.0
+   227    400000       812735      2.0      2.4              elif p.x > self.width - 2:
+   228      4196         7366      1.8      0.0                  p.x = self.width - 2 - random.random() * 0.01
+   229      4196         4358      1.0      0.0                  p.u = 0.0
+   230    400000       690098      1.7      2.1              if p.y < 1.0:
+   231                                                           p.y = 1.0 + random.random() * 0.01
+   232                                                           p.v = 0.0
+   233    400000       751462      1.9      2.2              elif p.y > self.height - 2:
+   234     37871        61929      1.6      0.2                  p.y = self.height - 2 - random.random() * 0.01
+   235     37871        37006      1.0      0.1                  p.v = 0.0
 

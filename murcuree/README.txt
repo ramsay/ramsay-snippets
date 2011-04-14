@@ -1,0 +1,1 @@
+Mercuree is a uploader/downloader queue server implemented in Erlang.
