@@ -1,43 +1,12 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "breathalyzer.h"
 
-int minimum(int i, int j, int k)
-{
-    if (i < j && i < k) {
-        return i;
-    } else if (j < k) {
-        return j;
-    }
-    return k;
-}
+#define MAX_BUFFER 1000
+#define MAX_WORD_SIZE 20
+typedef struct link word;
 
-int levenshtein(char *str1, char *str2, int threshold)
-{
-    int m = strlen(str1);
-    int n = strlen(str2);
-    int i, j;
-    int d[m][n];
-    for (i = 0; i < m; i++) {
-        d[i][0] = i;
-    }
-    for (i = 0; i < n; i++) {
-        d[0][i] = i;
-    }
-
-    for (i = 0; i < m; i++) {
-        for (j = 0; i< n; i++) {
-            if (str1[i] == str2[j]) {
-                d[i][j] = d[i-1][j-1];
-            } else {
-                d[i][j] = minimum(d[i-1][j], d[i][j-1], d[i-1][j-1]);
-            }
-        }
-    }
-    return d[m][n];
-}
-
-#define MAX_BUFFER 255
-#define MAX_WORDS 100
 int main(int argc, char **argv)
 {
     FILE *dictionary = fopen("twl06.txt", "r");
@@ -46,29 +15,51 @@ int main(int argc, char **argv)
         printf("Need input and facebook word list.\n");
         return 1;
     }
-    int i;
-    int words = 0;
-    char **sentence;
-    char buffer[MAX_BUFFER];
-    fgets(buffer, MAX_BUFFER, wallpost);
-    sentence[words] = strtok(buffer, " \r\n\t");
-    while (sentence[words++]) {
-        sentence[words] = strtok(NULL, " \r\n\t");
+    int i, d, words = 0;
+    word *sentence, *pCur;
+    char buffer1[MAX_BUFFER];
+    char buffer2[MAX_BUFFER];
+    sentence = (word *)malloc(sizeof(word));
+    pCur = sentence;
+    fgets(buffer1, MAX_BUFFER, wallpost);
+    char *c = buffer1;
+    while (*c != '\0' && *c !='\n') {
+        if (*c >= 'a' && *c <= 'z') {
+            *c += 'A' - 'a';
+        }
+        c++;
     }
-
-    int distances[words];
-    for (i = 0; i < words; i++) {
-        distances[i] = strlen(sentence[i]);
+    pCur->str = strtok(buffer1, " \r\n\t");
+    while (pCur->str) {
+        words++;
+        pCur->next = (word *)malloc(sizeof(word));
+        pCur = pCur->next;
+        pCur->str = strtok(NULL, " \r\n\t");
     }
-    while(fgets(buffer, MAX_BUFFER, dictionary)) {
-        for (i = 0; i < words; i++) {
-            distances[i] = levenshtein(buffer, sentence[i], distances[i]);
+    int *distances = (int *)malloc(sizeof(int)*words);
+    i = 0;
+    for (pCur = sentence; pCur->next != NULL; pCur = pCur->next) {
+        distances[i++] = strlen(pCur->str);
+    }
+    char * test;
+    while(fgets(buffer2, MAX_BUFFER, dictionary)) {
+        i = 0;
+        test = strtok(buffer2, " \r\n");
+        for (pCur = sentence; pCur->next != NULL; pCur = pCur->next) {
+            d = levenshtein(test, pCur->str, distances[i]);
+            if (d < distances[i]) {
+                distances[i] = d;
+            }
+            i++;
         }
     }
+
     int sum = 0;
     for (i = 0; i < words; i++) {
         sum += distances[i];
     }
-    printf("%d", sum);
+    printf("%d\n", sum);
+    fclose(dictionary);
+    fclose(wallpost);
     return 0;
 }
