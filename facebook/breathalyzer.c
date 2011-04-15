@@ -23,7 +23,7 @@ int levenshtein(char *str1, char *str2, int threshold)
     for (i = 0; i < n; i++) {
         d[0][i] = i;
     }
-    
+
     for (i = 0; i < m; i++) {
         for (j = 0; i< n; i++) {
             if (str1[i] == str2[j]) {
@@ -36,13 +36,13 @@ int levenshtein(char *str1, char *str2, int threshold)
     return d[m][n];
 }
 
-#define MAX_BUFFER 500
+#define MAX_BUFFER 255
 #define MAX_WORDS 100
 int main(int argc, char **argv)
 {
     FILE *dictionary = fopen("twl06.txt", "r");
     FILE *wallpost = fopen(argv[1], "r");
-    if (dictionary == NULL && wallpost == NULL) {
+    if (dictionary == NULL || wallpost == NULL) {
         printf("Need input and facebook word list.\n");
         return 1;
     }
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     while (sentence[words++]) {
         sentence[words] = strtok(NULL, " \r\n\t");
     }
-    
+
     int distances[words];
     for (i = 0; i < words; i++) {
         distances[i] = strlen(sentence[i]);
