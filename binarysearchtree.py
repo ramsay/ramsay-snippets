@@ -46,11 +46,23 @@ efficient insertion, deletion, and minimum/maximum value finding.
 # downloaded from <http://code.activestate.com/recipes/277940/>) is
 # available, then it is used to replace these constants at
 # import-time, increasing the binary search tree efficiency by 3-5%.
-_LEFT = 0
-_RIGHT = 1
-_VALUE = 2
-_SORT_KEY = -1
+_LEFT = 'left'
+_RIGHT = 'right'
 
+class Node:
+    __slots__ = ('right', 'left', 'value', '_sort_key')
+    def __init__(value, sort_key = None, right = None, left = None):
+        self.value = value
+        if sort_key is not None:
+            self._sort_key = sort_key
+        self.right = right
+        self.left = left
+    @property
+    def sort_key(self):
+        if hasattr(self, 'sort_key'):
+            return self.sort_key
+        return self.value
+    
 class BinarySearchTree(object):
     """
     A sorted collection of values that supports efficient insertion,
@@ -71,7 +83,7 @@ class BinarySearchTree(object):
         explicit sort key is not specified, then each value is
         considered its own sort key.
         """
-        self._root = [] # = empty node
+        self._root = None
         self._sort_key = sort_key
         self._len = 0 # keep track of how many items we contain.
 
@@ -90,16 +102,16 @@ class BinarySearchTree(object):
             sort_key = self._sort_key(value)
         # Walk down the tree until we find an empty node.
         node = self._root
-        while node:
-            if sort_key < node[_SORT_KEY]:
-                node = node[_LEFT]
+        while node is not None:
+            if sort_key < node.sort_key:
+                node = node.left
             else:
-                node = node[_RIGHT]
+                node = node.right
         # Put the value in the empty node.
         if sort_key is value:
-            node[:] = [[], [], value]
+            node = Node(value)#[[], [], value]
         else:
-            node[:] = [[], [], value, sort_key]
+            node = Node(value, sort_key)#[[], [], value, sort_key]
         self._len += 1
         
     def minimum(self):
@@ -108,7 +120,7 @@ class BinarySearchTree(object):
         values have the same (minimum) sort key, then it is undefined
         which one will be returned.
         """
-        return self._extreme_node(_LEFT)[_VALUE]
+        return self._extreme_node(_LEFT).value
     
     def maximum(self):
         """
@@ -116,14 +128,14 @@ class BinarySearchTree(object):
         have the same (maximum) sort key, then it is undefined which one
         will be returned.
         """
-        return self._extreme_node(_RIGHT)[_VALUE]
+        return self._extreme_node(_RIGHT).value
 
     def find(self, sort_key):
         """
         Find a value with the given sort key, and return it.  If no such
         value is found, then raise a KeyError.
         """
-        return self._find(sort_key)[_VALUE]
+        return self._find(sort_key).value
     
     def pop_min(self):
         """
@@ -201,8 +213,8 @@ class BinarySearchTree(object):
             raise IndexError('Empty Binary Search Tree!')
         node = self._root
         # Walk down the specified side of the tree.
-        while node[side]:
-            node = node[side]
+        while getattr(node, side):
+            node = getattr(node, side)
         return node
 
     def _find(self, sort_key):
@@ -211,11 +223,11 @@ class BinarySearchTree(object):
         """
         node = self._root
         while node:
-            node_key = node[_SORT_KEY]
+            node_key = node.sort_key
             if sort_key < node_key:
-                node = node[_LEFT]
+                node = node.left
             elif sort_key > node_key:
-                node = node[_RIGHT]
+                node = node.right
             else:
                 return node
         raise KeyError("Key %r not found in BST" % sort_key)
@@ -224,9 +236,9 @@ class BinarySearchTree(object):
         """
         Delete the given node, and return its value.
         """
-        value = node[_VALUE]
-        if node[_LEFT]:
-            if node[_RIGHT]:
+        value = node.value
+        if node.left:
+            if node.right:
                 # This node has a left child and a right child; find
                 # the node's successor, and replace the node's value
                 # with its successor's value.  Then replace the
@@ -235,22 +247,23 @@ class BinarySearchTree(object):
                 # and successor may not be the same length (3 vs 4)
                 # because of the key-equal-to-value optimization; so
                 # we have to be a little careful here.
-                successor = node[_RIGHT]
-                while successor[_LEFT]: successor = successor[_LEFT]
-                node[2:] = successor[2:] # copy value & key
-                successor[:] = successor[_RIGHT]
+                successor = node.right
+                while successor.left: successor = successor.left
+                node.value = successor.value
+                node.sort_key = successor.sort_key
+                successor = successor.right
             else:
                 # This node has a left child only; replace it with
                 # that child.
-                node[:] = node[_LEFT]
+                node = node.left
         else:
-            if node[_RIGHT]:
+            if node.right:
                 # This node has a right child only; replace it with
                 # that child.
-                node[:] = node[_RIGHT]
+                node = node.right
             else:
                 # This node has no children; make it empty.
-                del node[:]
+                del node
         self._len -= 1
         return value
 
@@ -267,11 +280,11 @@ class BinarySearchTree(object):
         while stack or node:
             if node: # descending the tree
                 stack.append(node)
-                node = node[pre]
+                node = getattr(node, pre)
             else: # ascending the tree
                 node = stack.pop()
-                yield node[_VALUE]
-                node = node[post]
+                yield node.value
+                node = getattr(node, post)
 
     def _pprint(self, node, max_depth, show_key, spacer=2):
         """
@@ -284,18 +297,18 @@ class BinarySearchTree(object):
         else:
             top_lines = []
             bot_lines = []
-            mid_line = '-%r' % node[_VALUE]
-            if len(node) > 3: mid_line += ' (key=%r)' % node[_SORT_KEY]
-            if node[_LEFT]:
-                t,m,b = self._pprint(node[_LEFT], max_depth-1,
+            mid_line = '-%r' % node.value
+            if len(node) > 3: mid_line += ' (key=%r)' % node.sort_key
+            if node.left:
+                t,m,b = self._pprint(node.left, max_depth-1,
                                      show_key, spacer)
                 indent = ' '*(len(b)+spacer)
                 top_lines += [indent+' '+line for line in t]
                 top_lines.append(indent+'/'+m)
                 top_lines += [' '*(len(b)-i+spacer-1)+'/'+' '*(i+1)+line
                               for (i, line) in enumerate(b)]
-            if node[_RIGHT]:
-                t,m,b = self._pprint(node[_RIGHT], max_depth-1,
+            if node.right:
+                t,m,b = self._pprint(node.right, max_depth-1,
                                      show_key, spacer)
                 indent = ' '*(len(t)+spacer)
                 bot_lines += [' '*(i+spacer)+'\\'+' '*(len(t)-i)+line
