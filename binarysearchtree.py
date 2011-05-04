@@ -64,8 +64,8 @@ class Node(object):
     def sort_key(self):
         ''' Property method, returns sort_key if it exists, else
         returns the value.'''
-        if hasattr(self, 'sort_key'):
-            return self.sort_key
+        if hasattr(self, '_sort_key'):
+            return self._sort_key
         return self.value
     
 class BinarySearchTree(object):
@@ -81,7 +81,7 @@ class BinarySearchTree(object):
     values with the same key).  The ordering of equal values, or
     values with equal keys, is undefined.
     """
-    def __init__(self, sort_key=None):
+    def __init__(self, values = None, sort_key=None):
         """
         Create a new empty BST.  If a sort key is specified, then it
         will be used to define the sort order for the BST.  If an
@@ -90,7 +90,10 @@ class BinarySearchTree(object):
         """
         self._root = None
         self._sort_key = sort_key
-        self._len = 0 # keep track of how many items we contain.
+        self._len = 0
+        if len(values):
+            for elem in values:
+                self.insert(elem)
 
     #/////////////////////////////////////////////////////////////////
     # Public Methods
@@ -100,23 +103,25 @@ class BinarySearchTree(object):
         """
         Insert the specified value into the BST.
         """
+        
         # Get the sort key for this value.
         if self._sort_key is None:
-            sort_key = value
+            new_node = Node(value)
         else:
-            sort_key = self._sort_key(value)
+            new_node = Node(value, self._sort_key(value))
         # Walk down the tree until we find an empty node.
+        if self._root is None:
+            self._root = new_node
         node = self._root
-        while node is not None:
-            if sort_key < node.sort_key:
+        while node is not new_node:
+            if new_node.sort_key < node.sort_key:
+                if node.left is None:
+                    node.left = new_node
                 node = node.left
             else:
+                if node.right is None:
+                    node.right = new_node
                 node = node.right
-        # Put the value in the empty node.
-        if sort_key is value:
-            node = Node(value)#[[], [], value]
-        else:
-            node = Node(value, sort_key)#[[], [], value, sort_key]
         self._len += 1
         
     def minimum(self):
@@ -214,11 +219,11 @@ class BinarySearchTree(object):
         Return the leaf node found by descending the given side of the
         BST (either _LEFT or _RIGHT).
         """
-        if not self._root:
+        if self._root is None:
             raise IndexError('Empty Binary Search Tree!')
         node = self._root
         # Walk down the specified side of the tree.
-        while getattr(node, side):
+        while getattr(node, side) is not None:
             node = getattr(node, side)
         return node
 
