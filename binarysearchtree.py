@@ -49,9 +49,12 @@ efficient insertion, deletion, and minimum/maximum value finding.
 _LEFT = 'left'
 _RIGHT = 'right'
 
-class Node:
+class Node(object):
+    '''The BST node structure. It uses slots t keep the memory usage same or
+    better than a list. The sort_key is a lazy evaluated property.
+    '''
     __slots__ = ('right', 'left', 'value', '_sort_key')
-    def __init__(value, sort_key = None, right = None, left = None):
+    def __init__(self, value, sort_key = None, right = None, left = None):
         self.value = value
         if sort_key is not None:
             self._sort_key = sort_key
@@ -59,6 +62,8 @@ class Node:
         self.left = left
     @property
     def sort_key(self):
+        ''' Property method, returns sort_key if it exists, else
+        returns the value.'''
         if hasattr(self, 'sort_key'):
             return self.sort_key
         return self.value
@@ -176,7 +181,7 @@ class BinarySearchTree(object):
 
     def __nonzero__(self):
         """Return true if this BST is not empty"""
-        return self._len>0
+        return self._len > 0
 
     def __repr__(self):
         return '<BST: (%s)>' % ', '.join('%r' % v for v in self)
@@ -189,14 +194,14 @@ class BinarySearchTree(object):
         Return a pretty-printed string representation of this binary
         search tree.
         """
-        t,m,b = self._pprint(self._root, max_depth, show_key)
-        lines = t+[m]+b
+        top, mid, bot = self._pprint(self._root, max_depth, show_key)
+        lines = top + [mid] + bot
         if frame:
             width = max(40, max(len(line) for line in lines))
-            s = '+-'+'MIN'.rjust(width, '-')+'-+\n'
-            s += ''.join('| %s |\n' % line.ljust(width) for line in lines)
-            s += '+-'+'MAX'.rjust(width, '-')+'-+\n'
-            return s
+            sout = '+-'+'MIN'.rjust(width, '-')+'-+\n'
+            sout += ''.join('| %s |\n' % line.ljust(width) for line in lines)
+            sout += '+-'+'MAX'.rjust(width, '-')+'-+\n'
+            return sout
         else:
             return '\n'.join(lines)
 
@@ -248,7 +253,8 @@ class BinarySearchTree(object):
                 # because of the key-equal-to-value optimization; so
                 # we have to be a little careful here.
                 successor = node.right
-                while successor.left: successor = successor.left
+                while successor.left:
+                    successor = successor.left
                 node.value = successor.value
                 node.sort_key = successor.sort_key
                 successor = successor.right
@@ -268,13 +274,14 @@ class BinarySearchTree(object):
         return value
 
     def _iter(self, pre, post):
-        # Helper for sorted iterators.
-        #   - If (pre,post) = (_LEFT,_RIGHT), then this will generate items
-        #     in sorted order.
-        #   - If (pre,post) = (_RIGHT,_LEFT), then this will generate items
-        #     in reverse-sorted order.
-        # We use an iterative implemenation (rather than the recursive one)
-        # for efficiency.
+        '''Helper for sorted iterators.
+            - If (pre,post) = (_LEFT,_RIGHT), then this will generate items
+              in sorted order.
+            - If (pre,post) = (_RIGHT,_LEFT), then this will generate items
+              in reverse-sorted order.
+          We use an iterative implemenation (rather than the recursive one)
+          for efficiency.
+        '''
         stack = []
         node = self._root
         while stack or node:
@@ -298,23 +305,24 @@ class BinarySearchTree(object):
             top_lines = []
             bot_lines = []
             mid_line = '-%r' % node.value
-            if len(node) > 3: mid_line += ' (key=%r)' % node.sort_key
+            if len(node) > 3:
+                mid_line += ' (key=%r)' % node.sort_key
             if node.left:
-                t,m,b = self._pprint(node.left, max_depth-1,
+                top, mid, bot = self._pprint(node.left, max_depth-1,
                                      show_key, spacer)
-                indent = ' '*(len(b)+spacer)
-                top_lines += [indent+' '+line for line in t]
-                top_lines.append(indent+'/'+m)
-                top_lines += [' '*(len(b)-i+spacer-1)+'/'+' '*(i+1)+line
-                              for (i, line) in enumerate(b)]
+                indent = ' '*(len(bot)+spacer)
+                top_lines += [indent+' '+line for line in top]
+                top_lines.append(indent+'/'+mid)
+                top_lines += [' '*(len(bot)-i+spacer-1)+'/'+' '*(i+1)+line
+                              for (i, line) in enumerate(bot)]
             if node.right:
-                t,m,b = self._pprint(node.right, max_depth-1,
+                top, mid, bot = self._pprint(node.right, max_depth-1,
                                      show_key, spacer)
-                indent = ' '*(len(t)+spacer)
-                bot_lines += [' '*(i+spacer)+'\\'+' '*(len(t)-i)+line
-                              for (i, line) in enumerate(t)]
-                bot_lines.append(indent+'\\'+m)
-                bot_lines += [indent+' '+line for line in b]
+                indent = ' '*(len(top)+spacer)
+                bot_lines += [' '*(i+spacer) + '\\' + ' ' * (len(top)-i) + line
+                              for (i, line) in enumerate(top)]
+                bot_lines.append(indent+'\\'+mid)
+                bot_lines += [indent+' '+line for line in bot]
             return (top_lines, mid_line, bot_lines)
 
 try:
@@ -324,7 +332,7 @@ try:
     # "optimize_constants.py".
     from optimize_constants import bind_all
     bind_all(BinarySearchTree)
-except:
+except ImportError:
     pass
 ## end of http://code.activestate.com/recipes/577540/ }}}
 
