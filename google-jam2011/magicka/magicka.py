@@ -141,5 +141,5 @@ if __name__ == '__main__':
             d = int(buff.pop(0))
             oppose = buff[:d]
             del buff[:d]
-            print "Case #%d: %s" % (count, invoke(combine, oppose, buff[1]))
+            print "Case #%d: %s" % (count, str(invoke(combine, oppose, buff[1])).replace("'",''))
             count += 1
