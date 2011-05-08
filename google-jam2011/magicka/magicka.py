@@ -106,18 +106,26 @@ Case #5: []
 '''
 
 def invoke(combos, opposed, spell):
-    l = 0
+    _spell = list(spell)
     element_list = []
-    for element in spell:
+    l1 = l2 = 0
+    while l1 != len(element_list) or l2 != len(_spell):
+        reset = False
+        l1 = len(element_list)
+        l2 = len(_spell)
         for c in combos:
             if len(element_list) > 1 and set(element_list[-2:]) == c[0]:
                 del element_list[-2:]
                 element_list.append(c[1])
-                continue
+                reset = True
+                break
+        if reset:
+            continue
         for o in opposed:
             if o[0] in element_list and o[1] in element_list:
                 element_list = []
-        element_list.append(element)
+        if _spell:
+            element_list.append(_spell.pop(0))
     return ''.join(element_list)
 
 if __name__ == '__main__':
