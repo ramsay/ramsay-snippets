@@ -126,7 +126,7 @@ def invoke(combos, opposed, spell):
                 element_list = []
         if _spell:
             element_list.append(_spell.pop(0))
-    return ''.join(element_list)
+    return element_list
 
 if __name__ == '__main__':
     import sys
