@@ -76,10 +76,42 @@ to arrange them in the correct order. After that, Goro can hold down elements
 take another 2 hits, on average. The total is then 2 + 2 = 4 hits.
 '''
 
+def partition(seq, pivot):
+    '''left is the index of the leftmost element of the array
+    right is the index of the rightmost element of the array (inclusive)
+    number of elements in subarray: right-left+1'''
+    swaps = 0
+    value = seq[pivot]
+    peek = 0
+    #seq[pivot], seq[-1] = seq[-1], seq[pivot]# Move pivot to end
+    for i  in  range(len(seq)-1):
+        if seq[i] <= value:
+            seq[i], seq[peek] = seq[peek], seq[i]
+            swaps += 1
+            peek += 1
+    #seq[left], seq[-1] = seq[-1], seq[left] # Move pivot to its final place
+    return (seq, peek, swaps)
+
+def quicksort(seq):
+    if len(seq) > 1:
+        #select a pivotIndex in the range left ≤ pivotIndex ≤ right
+        # see Choice of pivot for possible choices
+        pivot = len(seq)/2
+        # element at pivotNewIndex is now at its final position
+        seq, pivot, swaps1 = partition(seq, pivot)
+        # recursively sort elements on the left of pivotNewIndex
+        seq[:pivot - 1], swaps2 = quicksort(seq[:pivot - 1])
+        # recursively sort elements on the right of pivotNewIndex
+        seq[pivot+1:], swaps3 = quicksort(seq[pivot + 1:])
+        print seq
+        return seq, swaps1 + swaps2 + swaps3
+    return seq, 0
+
 def goro(seq):
     '''Sorts the sequence `seq` using selection sort and returns the number of
     swaps required.'''
     swap = 0
+    
     for i in range(len(seq)-1):
         low = min(seq[i:])
         if low == seq[i]:
@@ -100,4 +132,6 @@ if __name__ == '__main__':
                 continue
             l = [int(i) for i in line.strip().split(' ')]
             case += 1
-            print "Case #%d: %f" %(case, 2.0*goro(l))
+            sorted_list, swaps = quicksort(l)
+            
+            print "Case #%d: %f" %(case, 2.0*swaps)
