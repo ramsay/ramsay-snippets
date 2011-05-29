@@ -21,12 +21,9 @@ MIT License ( http://www.opensource.org/licenses/mit-license.php )
  * http://grantkot.com/MPM/Liquid.html
  */
 """
-import pygame
-import pygame.locals
 import math
 import random
-#from line_profiler import LineProfiler
-import numpy
+from array import array
 
 CANVAS = None
 LIQUID_TEST = None
@@ -36,6 +33,7 @@ PARTICLESX = 50
 PARTICLESY = 80
 
 RANGE = range(3)
+RANGE2 = [(i, j) for i in RANGE for j in RANGE]
 
 class LiquidTest:
     def __init__ (self, width, height, particlesX, particlesY):
@@ -60,48 +58,46 @@ class LiquidTest:
 
     def paint(self):
         for p in self.particles:
-            pygame.draw.line(CANVAS, p.color, (4*p.x, 4*p.y,),
-                (4*(p.x - p.u), 4*(p.y - p.v)))
-
+            pygame.draw.line(
+                CANVAS, p.color, (4*p.x, 4*p.y,), (4*(p.x - p.u), 4*(p.y - p.v))
+                )
+    @staticmethod
+    def _equation1(value):
+        '''Returns two lists of lenth 3.'''
+        x = float(value)
+        pressure = [0.0, 0.0, 0.0]
+        gravity = [0.0, 0.0, 0.0]
+        pressure[0] = 0.5 * x * x + 1.5 * x + 1.125
+        gravity[0] = x + 1.5
+        x += 1.0
+        pressure[1] = -x * x + 0.75
+        gravity[1] = -2.0 * x
+        x += 1.0
+        pressure[2] = 0.5 * x * x - 1.5 * x + 1.125
+        gravity[2] = x - 1.5
+        return pressure, gravity
+        
     def _step1(self):
         for particle in self.particles:
             particle.cx = int(particle.x - 0.5)
             particle.cy = int(particle.y - 0.5)
             
-            x = float(particle.cx - particle.x)
-            particle.px[0] = 0.5 * x * x + 1.5 * x + 1.125
-            particle.gx[0] = x + 1.5
-            x += 1.0
-            particle.px[1] = -x * x + 0.75
-            particle.gx[1] = -2.0 * x
-            x += 1.0
-            particle.px[2] = 0.5 * x * x - 1.5 * x + 1.125
-            particle.gx[2] = x - 1.5
+            particle.px, particle.gx = self._equation1(particle.cx - particle.x)
 
-            y = float(particle.cy - particle.y)
-            particle.py[0] = 0.5 * y * y + 1.5 * y + 1.125
-            particle.gy[0] = y + 1.5
-            y += 1.0
-            particle.py[1] = -y * y + 0.75
-            particle.gy[1] = -2.0 * y
-            y += 1.0
-            particle.py[2] = 0.5 * y * y - 1.5 * y + 1.125
-            particle.gy[2] = y - 1.5
+            particle.py, particle.gy = self._equation1(particle.cy - particle.y)
+            
+            for i, j in RANGE2:
+                n = self.grid[particle.cx + i][particle.cy + j]
+                if not n.active:
+                    n.active = True
+                    self.active.add(n)
+                phi = particle.px[i] * particle.py[j]
+                n.m += phi * particle.material.m
+                n.d += phi
+                n.gx += particle.gx[i] * particle.py[j]
+                n.gy += particle.px[i] * particle.gy[j]
 
-
-            for i in RANGE:
-                for j in RANGE:
-                    n = self.grid[particle.cx + i][particle.cy + j]
-                    if not n.active:
-                        n.active = True
-                        self.active.add(n)
-                    phi = particle.px[i] * particle.py[j]
-                    n.m += phi * particle.material.m
-                    n.d += phi
-                    n.gx += particle.gx[i] * particle.py[j]
-                    n.gy += particle.px[i] * particle.gy[j]
-
-    def _step2(self, drag, mdx, mdy):       
+    def _density_summary(self, drag, mdx, mdy):       
         for p in self.particles:
 
             cx = p.x
@@ -163,12 +159,11 @@ class LiquidTest:
                     fx += weight * (mdx - p.u)
                     fy += weight * (mdy - p.v)
 
-            for i in RANGE:
-                for j in RANGE:
-                    n = self.grid[p.cx + i][p.cy + j]
-                    phi = p.px[i] * p.py[j]
-                    n.ax += -(p.gx[i] * p.py[j] * pressure) + fx * phi
-                    n.ay += -(p.px[i] * p.gy[j] * pressure) + fy * phi
+            for i, j in RANGE2:
+                n = self.grid[p.cx + i][p.cy + j]
+                phi = p.px[i] * p.py[j]
+                n.ax += -(p.gx[i] * p.py[j] * pressure) + fx * phi
+                n.ay += -(p.px[i] * p.gy[j] * pressure) + fy * phi
     
     def _compress_nodes(self):
         for n in self.active:
@@ -179,20 +174,18 @@ class LiquidTest:
 
     def _step3(self):
         for p in self.particles:
-            for i in RANGE:
-                for j in RANGE:
+            for i, j in RANGE2:
                     n = self.grid[p.cx + i][p.cy + j]
                     phi = p.px[i] * p.py[j]
                     p.u += phi * n.ax
                     p.v += phi * n.ay
             mu = p.material.m * p.u
             mv = p.material.m * p.v
-            for i in RANGE:
-                for j in RANGE:
-                    n = self.grid[p.cx + i][p.cy + j]
-                    phi = p.px[i] * p.py[j]
-                    n.u += phi * mu
-                    n.v += phi * mv
+            for i, j in RANGE2:
+                n = self.grid[p.cx + i][p.cy + j]
+                phi = p.px[i] * p.py[j]
+                n.u += phi * mu
+                n.v += phi * mv
 
     def _compress_nodes2(self):
         for n in self.active:
@@ -204,12 +197,11 @@ class LiquidTest:
         for p in self.particles:
             gu = 0.0
             gv = 0.0
-            for i  in RANGE:
-                for j  in RANGE:
-                    n = self.grid[p.cx + i][p.cy + j]
-                    phi = p.px[i] * p.py[j]
-                    gu += phi * n.u
-                    gv += phi * n.v
+            for i,j  in RANGE2:
+                n = self.grid[p.cx + i][p.cy + j]
+                phi = p.px[i] * p.py[j]
+                gu += phi * n.u
+                gv += phi * n.v
             p.x += gu
             p.y += gv
             p.u += 1.0 * (gu - p.u)
@@ -246,7 +238,7 @@ class LiquidTest:
 
         self._step1()
         
-        self._step2(drag, mdx, mdy)
+        self._density_summary(drag, mdx, mdy)
         
         self._compress_nodes()
         
@@ -274,17 +266,21 @@ class Particle:
     def __init__(self, material, x, y, u, v):
         self.cx = 0
         self.cy = 0
-        self.px = numpy.array([0.0, 0.0, 0.0])
-        self.py = numpy.array([0.0, 0.0, 0.0])
-        self.gx = numpy.array([0.0, 0.0, 0.0])
-        self.gy = numpy.array([0.0, 0.0, 0.0])
+        self.px = array('f', [0.0, 0.0, 0.0])
+        self.py = array('f', [0.0, 0.0, 0.0])
+        self.gx = array('f', [0.0, 0.0, 0.0])
+        self.gy = array('f', [0.0, 0.0, 0.0])
         
         self.material = material
         self.x = x
         self.y = y
         self.u = u
         self.v = v
-        self.color = pygame.Color(0, 0, 255, 255)
+        try:
+            self.color = pygame.Color(0, 0, 255, 255)
+        except NameError:
+            self.color = (0, 0, 255, 255)
+        
 
 class Material:
     '''Some of these parameters are hard to explain in one or two sentences 
@@ -353,17 +349,37 @@ def main(n = 200):
         # advance simulation
         LIQUID_TEST.simulate()
 
+def analytical_main(n = 200):
+    global LIQUID_TEST
+    LIQUID_TEST = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
+    times = []
+    for i in range(n):
+        t1 = time.time()
+        LIQUID_TEST.simulate()
+        times.append((t1,time.time()))
+    total = 0.0
+    for frame in times:
+        total += frame[1] - frame[0]
+    print "Total time: {0}".format((total))
+    print "Average time: {0}".format((total/len(times)))
+    
 if __name__ == "__main__":
     import sys
-    if sys.argv[-1].lower() == "profile":
+    import time  
+    if sys.argv[-1].lower() == "lineprofile":
+        from line_profiler import LineProfiler
         profiler = LineProfiler()
         profiler.add_function(LiquidTest._step1)
-        profiler.add_function(LiquidTest._step2)
+        profiler.add_function(LiquidTest._density_summary)
         profiler.add_function(LiquidTest._step3)
         profiler.add_function(LiquidTest._step4)
 
         profiler.runctx("main(100)", globals(), locals())
         stats = open("liquid.txt", 'w')
         profiler.print_stats(stats)
+    elif sys.argv[-1].lower() == 'pypy':
+        analytical_main()
     else:
+        import pygame
+        import pygame.locals
         main(500)
