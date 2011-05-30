@@ -322,7 +322,7 @@ class Material:
         self.d = d
         self.g = g
 
-def main(n = 200):
+def pygame_main(n = 200):
     pygame.init()
     global CANVAS
     CANVAS = pygame.display.set_mode((WIDTH*4, HEIGHT*4), pygame.DOUBLEBUF)
@@ -362,6 +362,47 @@ def analytical_main(n = 200):
         total += frame[1] - frame[0]
     print "Total time: {0}".format((total))
     print "Average time: {0}".format((total/len(times)))
+
+def pyglet_main(width, height, particle_size):
+    from pyglet import gl, window, clock, app
+    from pyglet.window import mouse, screen, key
+    display = window.get_platform().get_default_display()
+    screens = display.get_screens()
+    window = window.Window(
+        width = width * 4, height = height * 4, 
+        screen = screens[0], config = gl.Config()
+    )
+    @window.event
+    def on_draw():
+        window.clear()
+        for p in LIQUID_TEST.particles:
+            pyglet.graphics.draw(
+                2,
+                pyglet.gl.GL_LINES,
+                ('v2f', (4*p.x, 4*p.y, 4*(p.x - p.u), 4*(p.y - p.v)))
+            )
+
+    @window.event
+    def on_mouse_press(x, y, button, modifiers):
+        if button == mouse.LEFT:
+            LIQUID_TEST.mx = x
+            LIQUID_TEST.my = y
+            LIQUID_TEST.pressed = True
+    
+    @window.event
+    def on_mouse_released(x, y, button, modifiers):
+        if button == mouse.LEFT:
+            LIQUID_TEST.pressed = False
+    
+    @window.event
+    def on_mouse_drag(x, y, dx, dy, button, modifiers):
+        if button == mouse.LEFT:
+            LIQUID_TEST.mx = x
+            LIQUID_TEST.my = y
+    
+    clock.schedule_interval(LIQUID_TEST.simulate, 0.02)
+    clock.schedule_interval(on_draw, 1/30)
+    app.run()
     
 if __name__ == "__main__":
     import sys
@@ -377,9 +418,11 @@ if __name__ == "__main__":
         profiler.runctx("main(100)", globals(), locals())
         stats = open("liquid.txt", 'w')
         profiler.print_stats(stats)
-    elif sys.argv[-1].lower() == 'pypy':
-        analytical_main()
-    else:
+    elif sys.argv[-1].lower() == 'pygame':
         import pygame
         import pygame.locals
-        main(500)
+        pygame_main(500)
+    elif sys.argv[-1].lower() == 'pyglet':
+        pyglet_main(WIDTH, HEIGHT, 500)
+    else:
+        analytical_main()
