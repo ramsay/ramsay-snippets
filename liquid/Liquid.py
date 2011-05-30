@@ -40,7 +40,7 @@ class LiquidTest:
         self.width = width
         self.height = height
         self.active = set()
-        self.water = Material(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.water = Material(3, 1.0, 1.0, 1.0, 1.0, 1.0)
         self.pressed = False
         self.pressedprev = False
         self.mx = 0.0
@@ -152,8 +152,8 @@ class LiquidTest:
                 fy += p.material.m * (self.height - p.y)
 
             if drag:
-                vx = math.fabs(p.x - 0.25 * self.mx)
-                vy = math.fabs(p.y - 0.25 * self.my)
+                vx = math.fabs(p.x - self.mx)
+                vy = math.fabs(p.y - self.my)
                 if  vx < 10.0 > vy:
                     weight = p.material.m * (1.0 - vx * 0.10) * (1.0 - vy * 0.10)
                     fx += weight * (mdx - p.u)
@@ -210,23 +210,23 @@ class LiquidTest:
                 p.x = 1.0 + random.random() * 0.01
                 p.u = 0.0
             elif p.x > self.width - 2:
-                p.x = self.width - 2 - random.random() * 0.01
+                p.x = self.width - 3 - random.random() * 0.01
                 p.u = 0.0
             if p.y < 1.0:
                 p.y = 1.0 + random.random() * 0.01
                 p.v = 0.0
             elif p.y > self.height - 2:
-                p.y = self.height - 2 - random.random() * 0.01
+                p.y = self.height - 3 - random.random() * 0.01
                 p.v = 0.0
 
     def simulate(self):
         drag = False
         mdx = mdy = 0.0
-
-        if (self.pressed and self.pressedprev):
+        
+        if self.pressed and self.pressedprev:
             drag = True
-            mdx = 0.25 * (self.mx - self.mxprev)
-            mdy = 0.25 * (self.my - self.myprev)
+            mdx = self.mx - self.mxprev
+            mdy = self.my - self.myprev
 
         self.pressedprev = self.pressed
         self.mxprev = self.mx
@@ -247,7 +247,7 @@ class LiquidTest:
         self._compress_nodes2()
 
         self._step4()
-        
+    
 class Node:
     def __init__(self):
         self.m = 0
@@ -322,13 +322,13 @@ class Material:
         self.d = d
         self.g = g
 
-def pygame_main(n = 200):
+def pygame_main(n=200, width=WIDTH, height=HEIGHT, particle_size=(PARTICLESX, PARTICLESY)):
     pygame.init()
     global CANVAS
-    CANVAS = pygame.display.set_mode((WIDTH*4, HEIGHT*4), pygame.DOUBLEBUF)
+    CANVAS = pygame.display.set_mode((width*4, height*4), pygame.DOUBLEBUF)
     
     global LIQUID_TEST
-    LIQUID_TEST = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
+    LIQUID_TEST = LiquidTest(width, height, particle_size[0], particle_size[1])
     for i in range(n):
         # clear
         CANVAS.fill(0, (3, 3, WIDTH*4-4, HEIGHT*4-4))
@@ -344,8 +344,8 @@ def pygame_main(n = 200):
             elif event.type == pygame.locals.MOUSEBUTTONUP:
                 LIQUID_TEST.pressed = False
             elif event.type == pygame.locals.MOUSEMOTION:
-                LIQUID_TEST.mx = event.pos[0]
-                LIQUID_TEST.my = event.pos[1]
+                LIQUID_TEST.mx = event.pos[0]/4
+                LIQUID_TEST.my = event.pos[1]/4
         # advance simulation
         LIQUID_TEST.simulate()
 
@@ -363,46 +363,68 @@ def analytical_main(n = 200):
     print "Total time: {0}".format((total))
     print "Average time: {0}".format((total/len(times)))
 
-def pyglet_main(width, height, particle_size):
-    from pyglet import gl, window, clock, app
-    from pyglet.window import mouse, screen, key
-    display = window.get_platform().get_default_display()
-    screens = display.get_screens()
-    window = window.Window(
-        width = width * 4, height = height * 4, 
-        screen = screens[0], config = gl.Config()
+def pyglet_main(width, height, particle_size, n = 10000):
+    LIQUID_TEST = LiquidTest(width, height, particle_size[0], particle_size[1])
+    from pyglet.window import mouse, Screen, key
+    from pyglet import gl, clock, app, graphics
+    import pyglet.window
+    import threading
+    window = pyglet.window.Window(
+        width = width * 4, height = height * 4
     )
     @window.event
     def on_draw():
         window.clear()
+        vertices = []
+        colors = []
         for p in LIQUID_TEST.particles:
-            pyglet.graphics.draw(
-                2,
-                pyglet.gl.GL_LINES,
-                ('v2f', (4*p.x, 4*p.y, 4*(p.x - p.u), 4*(p.y - p.v)))
-            )
+            vertices.extend([p.x, p.y, p.x - p.u, p.y - p.v])
+            colors.extend(p.color[:-1])
+            colors.extend([0, 0, 0])
+        graphics.draw(
+            len(LIQUID_TEST.particles)*2,
+            gl.GL_LINES,
+            ('v2f', vertices),
+            ('c3B', colors)
+        )
+        gl.glMatrixMode(gl.GL_PROJECTION)
+        gl.glLoadIdentity()
+        gl.glOrtho(0, width, height, 0, -1, 1)
+        gl.glMatrixMode(gl.GL_MODELVIEW)
 
     @window.event
     def on_mouse_press(x, y, button, modifiers):
         if button == mouse.LEFT:
-            LIQUID_TEST.mx = x
-            LIQUID_TEST.my = y
+            LIQUID_TEST.mx = x/4
+            LIQUID_TEST.my = height - y/4
             LIQUID_TEST.pressed = True
     
     @window.event
-    def on_mouse_released(x, y, button, modifiers):
-        if button == mouse.LEFT:
-            LIQUID_TEST.pressed = False
+    def on_mouse_release(x, y, button, modifiers):
+        LIQUID_TEST.pressed = False
     
     @window.event
     def on_mouse_drag(x, y, dx, dy, button, modifiers):
         if button == mouse.LEFT:
-            LIQUID_TEST.mx = x
-            LIQUID_TEST.my = y
+            LIQUID_TEST.mx = x/4
+            LIQUID_TEST.my = height - y/4
+            
+    stop = threading.Event()
+    def loop(lt, n, stop):
+        for i in xrange(n):
+            lt.simulate()
+            if stop.is_set():
+                break
     
-    clock.schedule_interval(LIQUID_TEST.simulate, 0.02)
-    clock.schedule_interval(on_draw, 1/30)
+    def induce_paint(dt):
+        pass
+    
+    worker = threading.Thread(target=loop, args=(LIQUID_TEST, n, stop))
+    clock.schedule_interval(induce_paint, 1.0/30.0)
+    worker.start()
     app.run()
+    stop.set()
+    worker.join()
     
 if __name__ == "__main__":
     import sys
@@ -423,6 +445,6 @@ if __name__ == "__main__":
         import pygame.locals
         pygame_main(500)
     elif sys.argv[-1].lower() == 'pyglet':
-        pyglet_main(WIDTH, HEIGHT, 500)
+        pyglet_main(WIDTH, HEIGHT, (PARTICLESX, PARTICLESY))
     else:
         analytical_main()
