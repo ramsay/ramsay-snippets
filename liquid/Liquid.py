@@ -28,6 +28,37 @@ from collections import namedtuple
 RANGE = range(3)
 RANGE2 = [(i, j) for i in RANGE for j in RANGE]
 
+'''Some of these parameters are hard to explain in one or two sentences 
+(and a couple I made up) so I'll also link you to their corresponding 
+Wikipedia pages. One object I like to compare fluids with is springs. 
+Everybody is familiar with springs. If you pull on them they'll try to go 
+back to their original shape. Some springs are stronger and some are weaker 
+(stiffness and elasticity). Some springs will continue to bounce back and 
+forth for a long time, while others will quickly slow down and stop (bulk 
+viscosity and viscosity). If you pull hard enough the spring will break.
+
+Density - Target density for the particles. Higher density makes particles 
+want to be closer together.
+
+Stiffness - How compressible the fluid is.
+
+Bulk viscosity - Kind of like damping. Another effect it will have is that 
+it'll smooth out shockwaves.
+
+Elasticity - How fast the fluid will try to return to its original shape.
+
+Viscosity - Kind of like bulk viscosity only this operates on the shear 
+components.
+
+Yield rate - How fast the fluid forgets its shape or melts away. Only 
+affects things when elasticity is non-zero.
+
+Gravity - How much the particles will accelerate downwards.
+
+Smoothing - Smooths the velocity field. Will make things more stable. It is 
+also useful to have a high smoothing value when simulating elastic 
+materials.
+'''
 Material = namedtuple('Material', ['m', 'rd', 'k', 'v', 'd', 'g'])
 
 class LiquidTest:
@@ -267,38 +298,6 @@ class Particle:
             self.color = pygame.Color(0, 0, 255, 255)
         except NameError:
             self.color = (0, 0, 255, 255)
-        
-'''Some of these parameters are hard to explain in one or two sentences 
-(and a couple I made up) so I'll also link you to their corresponding 
-Wikipedia pages. One object I like to compare fluids with is springs. 
-Everybody is familiar with springs. If you pull on them they'll try to go 
-back to their original shape. Some springs are stronger and some are weaker 
-(stiffness and elasticity). Some springs will continue to bounce back and 
-forth for a long time, while others will quickly slow down and stop (bulk 
-viscosity and viscosity). If you pull hard enough the spring will break.
-
-Density - Target density for the particles. Higher density makes particles 
-want to be closer together.
-
-Stiffness - How compressible the fluid is.
-
-Bulk viscosity - Kind of like damping. Another effect it will have is that 
-it'll smooth out shockwaves.
-
-Elasticity - How fast the fluid will try to return to its original shape.
-
-Viscosity - Kind of like bulk viscosity only this operates on the shear 
-components.
-
-Yield rate - How fast the fluid forgets its shape or melts away. Only 
-affects things when elasticity is non-zero.
-
-Gravity - How much the particles will accelerate downwards.
-
-Smoothing - Smooths the velocity field. Will make things more stable. It is 
-also useful to have a high smoothing value when simulating elastic 
-materials.
-'''
 
 def pygame_main(liquid):
     '''The main loop for the pygame interface. The pygame window will be 4 
