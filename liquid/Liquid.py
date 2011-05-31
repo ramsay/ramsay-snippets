@@ -29,23 +29,21 @@ RANGE = range(3)
 RANGE2 = [(i, j) for i in RANGE for j in RANGE]
 
 class LiquidTest:
-    def __init__ (self, width, height, particlesX, particlesY):
+    def __init__ (self, width, height, particles):
         self.width = width
         self.height = height
         self.active = set()
-        self.water = Material(3, 1.0, 1.0, 1.0, 1.0, 1.0)
         self.pressed = False
         self.pressedprev = False
-        self.mx = 0.0
-        self.my = 0.0
-        self.mxprev = 0.0
-        self.myprev = 0.0
-
-        self.grid = [[Node() for j in range(self.height)] 
-            for i in range(self.width)]
+        self.mouse = [0.0, 0.0]
+        self.mouse_prev = [0.0, 0.0]
         
-        self.particles = [Particle(self.water, i + 4, j + 4, 0.0, 0.0)
-            for j in range(particlesY) for i in range(particlesX)]
+        self.grid = [[Node() for h in range(self.height)] 
+            for w in range(self.width)]
+        
+        water = Material(3, 1.0, 1.0, 1.0, 1.0, 1.0)
+        self.particles = [Particle(water, x + 4, y + 4, 0.0, 0.0)
+            for y in range(particles[1]) for x in range(particles[0])]
 
     @staticmethod
     def _equation1(value):
@@ -138,10 +136,11 @@ class LiquidTest:
                 fy += p.material.m * (self.height - p.y)
 
             if drag:
-                vx = math.fabs(p.x - self.mx)
-                vy = math.fabs(p.y - self.my)
+                vx = math.fabs(p.x - self.mouse[0])
+                vy = math.fabs(p.y - self.mouse[1])
                 if  vx < 10.0 > vy:
-                    weight = p.material.m * (1.0 - vx * 0.10) * (1.0 - vy * 0.10)
+                    weight = (p.material.m * (1.0 - vx * 0.10) * 
+                        (1.0 - vy * 0.10))
                     fx += weight * (mdx - p.u)
                     fy += weight * (mdy - p.v)
 
@@ -161,10 +160,10 @@ class LiquidTest:
     def _step3(self):
         for p in self.particles:
             for i, j in RANGE2:
-                    n = self.grid[p.cx + i][p.cy + j]
-                    phi = p.px[i] * p.py[j]
-                    p.u += phi * n.ax
-                    p.v += phi * n.ay
+                n = self.grid[p.cx + i][p.cy + j]
+                phi = p.px[i] * p.py[j]
+                p.u += phi * n.ax
+                p.v += phi * n.ay
             mu = p.material.m * p.u
             mv = p.material.m * p.v
             for i, j in RANGE2:
@@ -211,12 +210,12 @@ class LiquidTest:
         
         if self.pressed and self.pressedprev:
             drag = True
-            mdx = self.mx - self.mxprev
-            mdy = self.my - self.myprev
+            mdx = self.mouse[0] - self.mouse_prev[0]
+            mdy = self.mouse[1] - self.mouse_prev[1]
 
         self.pressedprev = self.pressed
-        self.mxprev = self.mx
-        self.myprev = self.my
+        self.mouse_prev[0] = self.mouse[0]
+        self.mouse_prev[1] = self.mouse[1]
 
         for node in self.active:
             node.__init__()
@@ -309,18 +308,27 @@ class Material:
         self.g = g
 
 def pygame_main(liquid):
+    '''The main loop for the pygame interface. The pygame window will be 4 
+    times wider and 4 times taller than the width and height of the liquid 
+    simulation. It uses a standard double buffered sdl window. With pygame the
+    simulation speed and the framerate are locked together. You can use the
+    mouse to click and drag around the particles.'''
     import pygame
     import pygame.locals
     pygame.init()
-    canvas = pygame.display.set_mode((liquid.width*4, liquid.height*4), pygame.DOUBLEBUF)
+    canvas = pygame.display.set_mode(
+        (liquid.width*4, liquid.height*4), pygame.DOUBLEBUF)
     while True:
         # clear
         canvas.fill(0, (3, 3, liquid.width*4-4, liquid.height*4-4))
         # draw simulation state
         for p in liquid.particles:
             pygame.draw.line(
-                canvas, p.color, (4*p.x, 4*p.y,), (4*(p.x - p.u), 4*(p.y - p.v))
-                )
+                canvas, 
+                p.color, 
+                (4*p.x, 4*p.y,), 
+                (4*(p.x - p.u), 4*(p.y - p.v))
+            )
         pygame.display.flip()
         #get events
         for event in pygame.event.get():
@@ -331,26 +339,19 @@ def pygame_main(liquid):
             elif event.type == pygame.locals.MOUSEBUTTONUP:
                 liquid.pressed = False
             elif event.type == pygame.locals.MOUSEMOTION:
-                liquid.mx = event.pos[0]/4
-                liquid.my = event.pos[1]/4
+                liquid.mouse[0] = event.pos[0]/4
+                liquid.mouse[1] = event.pos[1]/4
         # advance simulation
         liquid.simulate()
 
-def analytical_main(n = 200):
-    global LIQUID_TEST
-    LIQUID_TEST = LiquidTest(WIDTH, HEIGHT, PARTICLESX, PARTICLESY)
-    times = []
-    for i in range(n):
-        t1 = time.time()
-        LIQUID_TEST.simulate()
-        times.append((t1,time.time()))
-    total = 0.0
-    for frame in times:
-        total += frame[1] - frame[0]
-    print "Total time: {0}".format((total))
-    print "Average time: {0}".format((total/len(times)))
-
 def pyglet_main(liquid):
+    '''Creates a pyglet window and context that will be 4 times wider and 4 
+    times taller than the simulation area. Pyglet uses asynchronous event 
+    handlers so there are a few functions here to handle those events and 
+    update the simulation variables. The framerate is not tied to the 
+    simulation speed because the simulation is run in it's own thread and 
+    pyglet is tricked into updating at 30Hz.'''
+
     from pyglet.window import mouse, Screen, key
     from pyglet import gl, clock, app, graphics
     import pyglet.window
@@ -360,6 +361,10 @@ def pyglet_main(liquid):
     )
     @window.event
     def on_draw():
+        '''The draw command is one glDraw command after gathering all of the 
+        vertex information from the simulation. The draw loop first draws the 
+        lines in simulation coordinates which is then "scaled" up using 
+        glMatrixmode.'''
         window.clear()
         vertices = []
         colors = []
@@ -380,29 +385,38 @@ def pyglet_main(liquid):
 
     @window.event
     def on_mouse_press(x, y, button, modifiers):
+        '''Takes mouse press coordinates and sends them to the liquid 
+        simulation object.'''
         if button == mouse.LEFT:
-            liquid.mx = x/4
-            liquid.my = liquid.height - y/4
+            liquid.mouse[0] = x/4
+            liquid.mouse[1] = liquid.height - y/4
             liquid.pressed = True
     
     @window.event
     def on_mouse_release(x, y, button, modifiers):
+        '''Tells the liquid simulation to stop tracking the mouse.'''
         liquid.pressed = False
     
     @window.event
     def on_mouse_drag(x, y, dx, dy, button, modifiers):
+        '''Updates the liquid simulation mouse coordinates.'''
         if button == mouse.LEFT:
-            liquid.mx = x/4
-            liquid.my = liquid.height - y/4
+            liquid.mouse[0] = x/4
+            liquid.mouse[1] = liquid.height - y/4
             
     stop = threading.Event()
     def loop(lt, stop):
+        '''This is an endless but stoppable loop to run the simulation in a
+        thread while pyglet handles the drawing and mouse events.'''
         while True:
             lt.simulate()
             if stop.is_set():
                 break
     
     def induce_paint(dt):
+        '''This is a dummy function that is added to the pyglet schedule so 
+        that the screen can be updated in a timely fashion independent of the
+        simulation.'''
         pass
     
     worker = threading.Thread(target=loop, args=(liquid, stop))
@@ -414,28 +428,34 @@ def pyglet_main(liquid):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(
+    PARSER = argparse.ArgumentParser(
         prog='Liquid.py',
         description='Material Point Method liquid simulation',
     )
-    parser.add_argument('--width', help='The width of the simulation area', default=100)
-    parser.add_argument('--height', help='The height of the simulation area', default=100)
-    parser.add_argument('--columns', help='The number of particle columns', default=50)
-    parser.add_argument('--rows', help='The number of particle rows', default=80)
-    parser.add_argument('--n', help='The number of iterations to run the simulation.', 
+    PARSER.add_argument('--width', 
+        help='The width of the simulation area', default=100)
+    PARSER.add_argument('--height', 
+        help='The height of the simulation area', default=100)
+    PARSER.add_argument('--columns', 
+        help='The number of particle columns', default=50)
+    PARSER.add_argument('--rows', 
+        help='The number of particle rows', default=80)
+    PARSER.add_argument('--n', 
+        help='The number of iterations to run the simulation.', 
         default=200)
-    parser.add_argument('-i', '--interactive', 
-        help='Run the simulation through an interactive pygame or pyglet interface',
+    PARSER.add_argument('-i', '--interactive', 
+        help='Run the simulation interactively with pygame or pyglet',
         choices=['pygame', 'pyglet'])
-    args = parser.parse_args()
-    LIQUID_TEST = LiquidTest(args.width, args.height, args.columns, args.rows)
-    if args.interactive == 'pygame':
+    ARGS = PARSER.parse_args()
+    LIQUID_TEST = LiquidTest(ARGS.width, ARGS.height, (ARGS.columns, ARGS.rows))
+    if ARGS.interactive == 'pygame':
         pygame_main(LIQUID_TEST)
-    elif args.interactive == 'pyglet':
+    elif ARGS.interactive == 'pyglet':
         pyglet_main(LIQUID_TEST)
     else:
         import timeit
-        timer = timeit.Timer('LIQUID_TEST.simulate()', setup='from __main__ import LIQUID_TEST')
-        total = timer.timeit(args.n)
-        print "Total simulation time: {0}".format(total)
-        print "Average simulation frame time: {0}".format(total/args.n)
+        TIMER = timeit.Timer('LIQUID_TEST.simulate()', 
+            setup='from __main__ import LIQUID_TEST')
+        TOTAL = TIMER.timeit(ARGS.n)
+        print "Total simulation time: {0}".format(TOTAL)
+        print "Average simulation frame time: {0}".format(TOTAL/ARGS.n)
