@@ -25,13 +25,6 @@ import math
 import random
 from array import array
 
-CANVAS = None
-LIQUID_TEST = None
-WIDTH = 100
-HEIGHT = 100
-PARTICLESX = 50
-PARTICLESY = 80
-
 RANGE = range(3)
 RANGE2 = [(i, j) for i in RANGE for j in RANGE]
 
@@ -48,19 +41,12 @@ class LiquidTest:
         self.mxprev = 0.0
         self.myprev = 0.0
 
-
         self.grid = [[Node() for j in range(self.height)] 
             for i in range(self.width)]
         
         self.particles = [Particle(self.water, i + 4, j + 4, 0.0, 0.0)
             for j in range(particlesY) for i in range(particlesX)]
-        
 
-    def paint(self):
-        for p in self.particles:
-            pygame.draw.line(
-                CANVAS, p.color, (4*p.x, 4*p.y,), (4*(p.x - p.u), 4*(p.y - p.v))
-                )
     @staticmethod
     def _equation1(value):
         '''Returns two lists of lenth 3.'''
@@ -322,32 +308,33 @@ class Material:
         self.d = d
         self.g = g
 
-def pygame_main(n=200, width=WIDTH, height=HEIGHT, particle_size=(PARTICLESX, PARTICLESY)):
+def pygame_main(liquid):
+    import pygame
+    import pygame.locals
     pygame.init()
-    global CANVAS
-    CANVAS = pygame.display.set_mode((width*4, height*4), pygame.DOUBLEBUF)
-    
-    global LIQUID_TEST
-    LIQUID_TEST = LiquidTest(width, height, particle_size[0], particle_size[1])
-    for i in range(n):
+    canvas = pygame.display.set_mode((liquid.width*4, liquid.height*4), pygame.DOUBLEBUF)
+    while True:
         # clear
-        CANVAS.fill(0, (3, 3, WIDTH*4-4, HEIGHT*4-4))
+        canvas.fill(0, (3, 3, liquid.width*4-4, liquid.height*4-4))
         # draw simulation state
-        LIQUID_TEST.paint()
+        for p in liquid.particles:
+            pygame.draw.line(
+                canvas, p.color, (4*p.x, 4*p.y,), (4*(p.x - p.u), 4*(p.y - p.v))
+                )
         pygame.display.flip()
         #get events
         for event in pygame.event.get():
             if event.type == pygame.locals.QUIT:
                 return
             elif event.type == pygame.locals.MOUSEBUTTONDOWN:
-                LIQUID_TEST.pressed = True
+                liquid.pressed = True
             elif event.type == pygame.locals.MOUSEBUTTONUP:
-                LIQUID_TEST.pressed = False
+                liquid.pressed = False
             elif event.type == pygame.locals.MOUSEMOTION:
-                LIQUID_TEST.mx = event.pos[0]/4
-                LIQUID_TEST.my = event.pos[1]/4
+                liquid.mx = event.pos[0]/4
+                liquid.my = event.pos[1]/4
         # advance simulation
-        LIQUID_TEST.simulate()
+        liquid.simulate()
 
 def analytical_main(n = 200):
     global LIQUID_TEST
@@ -363,55 +350,54 @@ def analytical_main(n = 200):
     print "Total time: {0}".format((total))
     print "Average time: {0}".format((total/len(times)))
 
-def pyglet_main(width, height, particle_size, n = 10000):
-    LIQUID_TEST = LiquidTest(width, height, particle_size[0], particle_size[1])
+def pyglet_main(liquid):
     from pyglet.window import mouse, Screen, key
     from pyglet import gl, clock, app, graphics
     import pyglet.window
     import threading
     window = pyglet.window.Window(
-        width = width * 4, height = height * 4
+        width = liquid.width * 4, height = liquid.height * 4
     )
     @window.event
     def on_draw():
         window.clear()
         vertices = []
         colors = []
-        for p in LIQUID_TEST.particles:
+        for p in liquid.particles:
             vertices.extend([p.x, p.y, p.x - p.u, p.y - p.v])
             colors.extend(p.color[:-1])
             colors.extend([0, 0, 0])
         graphics.draw(
-            len(LIQUID_TEST.particles)*2,
+            len(liquid.particles)*2,
             gl.GL_LINES,
             ('v2f', vertices),
             ('c3B', colors)
         )
         gl.glMatrixMode(gl.GL_PROJECTION)
         gl.glLoadIdentity()
-        gl.glOrtho(0, width, height, 0, -1, 1)
+        gl.glOrtho(0, liquid.width, liquid.height, 0, -1, 1)
         gl.glMatrixMode(gl.GL_MODELVIEW)
 
     @window.event
     def on_mouse_press(x, y, button, modifiers):
         if button == mouse.LEFT:
-            LIQUID_TEST.mx = x/4
-            LIQUID_TEST.my = height - y/4
-            LIQUID_TEST.pressed = True
+            liquid.mx = x/4
+            liquid.my = liquid.height - y/4
+            liquid.pressed = True
     
     @window.event
     def on_mouse_release(x, y, button, modifiers):
-        LIQUID_TEST.pressed = False
+        liquid.pressed = False
     
     @window.event
     def on_mouse_drag(x, y, dx, dy, button, modifiers):
         if button == mouse.LEFT:
-            LIQUID_TEST.mx = x/4
-            LIQUID_TEST.my = height - y/4
+            liquid.mx = x/4
+            liquid.my = liquid.height - y/4
             
     stop = threading.Event()
-    def loop(lt, n, stop):
-        for i in xrange(n):
+    def loop(lt, stop):
+        while True:
             lt.simulate()
             if stop.is_set():
                 break
@@ -419,32 +405,37 @@ def pyglet_main(width, height, particle_size, n = 10000):
     def induce_paint(dt):
         pass
     
-    worker = threading.Thread(target=loop, args=(LIQUID_TEST, n, stop))
+    worker = threading.Thread(target=loop, args=(liquid, stop))
     clock.schedule_interval(induce_paint, 1.0/30.0)
     worker.start()
     app.run()
     stop.set()
     worker.join()
-    
-if __name__ == "__main__":
-    import sys
-    import time  
-    if sys.argv[-1].lower() == "lineprofile":
-        from line_profiler import LineProfiler
-        profiler = LineProfiler()
-        profiler.add_function(LiquidTest._step1)
-        profiler.add_function(LiquidTest._density_summary)
-        profiler.add_function(LiquidTest._step3)
-        profiler.add_function(LiquidTest._step4)
 
-        profiler.runctx("main(100)", globals(), locals())
-        stats = open("liquid.txt", 'w')
-        profiler.print_stats(stats)
-    elif sys.argv[-1].lower() == 'pygame':
-        import pygame
-        import pygame.locals
-        pygame_main(500)
-    elif sys.argv[-1].lower() == 'pyglet':
-        pyglet_main(WIDTH, HEIGHT, (PARTICLESX, PARTICLESY))
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog='Liquid.py',
+        description='Material Point Method liquid simulation',
+    )
+    parser.add_argument('--width', help='The width of the simulation area', default=100)
+    parser.add_argument('--height', help='The height of the simulation area', default=100)
+    parser.add_argument('--columns', help='The number of particle columns', default=50)
+    parser.add_argument('--rows', help='The number of particle rows', default=80)
+    parser.add_argument('--n', help='The number of iterations to run the simulation.', 
+        default=200)
+    parser.add_argument('-i', '--interactive', 
+        help='Run the simulation through an interactive pygame or pyglet interface',
+        choices=['pygame', 'pyglet'])
+    args = parser.parse_args()
+    LIQUID_TEST = LiquidTest(args.width, args.height, args.columns, args.rows)
+    if args.interactive == 'pygame':
+        pygame_main(LIQUID_TEST)
+    elif args.interactive == 'pyglet':
+        pyglet_main(LIQUID_TEST)
     else:
-        analytical_main()
+        import timeit
+        timer = timeit.Timer('LIQUID_TEST.simulate()', setup='from __main__ import LIQUID_TEST')
+        total = timer.timeit(args.n)
+        print "Total simulation time: {0}".format(total)
+        print "Average simulation frame time: {0}".format(total/args.n)
