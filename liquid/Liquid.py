@@ -23,7 +23,6 @@ MIT License ( http://www.opensource.org/licenses/mit-license.php )
 """
 import math
 import random
-from array import array
 from collections import namedtuple
 RANGE = range(3)
 RANGE2 = [(i, j) for i in RANGE for j in RANGE]
@@ -65,7 +64,7 @@ class LiquidTest:
     def __init__ (self, width, height, particles):
         self.width = width
         self.height = height
-        self.active = set()
+        self.active = []
         self.pressed = False
         self.pressedprev = False
         self.mouse = [0.0, 0.0]
@@ -79,9 +78,8 @@ class LiquidTest:
             for y in range(particles[1]) for x in range(particles[0])]
 
     @staticmethod
-    def _equation1(value):
+    def _equation1(x):
         '''Returns two lists of lenth 3.'''
-        x = float(value)
         pressure = [0.0, 0.0, 0.0]
         gravity = [0.0, 0.0, 0.0]
         pressure[0] = 0.5 * x * x + 1.5 * x + 1.125
@@ -107,7 +105,7 @@ class LiquidTest:
                 n = self.grid[particle.cx + i][particle.cy + j]
                 if not n.active:
                     n.active = True
-                    self.active.add(n)
+                    self.active.append(n)
                 phi = particle.px[i] * particle.py[j]
                 n.m += phi * particle.material.m
                 n.d += phi
@@ -150,7 +148,6 @@ class LiquidTest:
             density = (n01.d + n01.gx * u + n01.gy * v + C20 * u2 + C02 * v2 + 
                 C30 * u3 + C03 * v3 + C21 * u2 * v + C31 * u3 * v + C12 * u * 
                 v2 + C13 * u * v3 + C11 * u * v)
-
             pressure = density - 1.0
             if pressure > 2.0:
                 pressure = 2.0
@@ -182,13 +179,6 @@ class LiquidTest:
                 phi = p.px[i] * p.py[j]
                 n.ax += -(p.gx[i] * p.py[j] * pressure) + fx * phi
                 n.ay += -(p.px[i] * p.gy[j] * pressure) + fy * phi
-    
-    def _compress_nodes(self):
-        for n in self.active:
-            if n.m > 0.0:
-                n.ax /= n.m
-                n.ay /= n.m
-                n.ay += 0.03
 
     def _step3(self):
         for p in self.particles:
@@ -204,12 +194,6 @@ class LiquidTest:
                 phi = p.px[i] * p.py[j]
                 n.u += phi * mu
                 n.v += phi * mv
-
-    def _compress_nodes2(self):
-        for n in self.active:
-            if n.m > 0.0:
-                n.u /= n.m
-                n.v /= n.m
 
     def _step4(self):
         for p in self.particles:
@@ -252,20 +236,27 @@ class LiquidTest:
 
         for node in self.active:
             node.__init__()
-        self.active.clear()
+        self.active = []
 
         self._step1()
         
         self._density_summary(drag, mdx, mdy)
         
-        self._compress_nodes()
+        for n in self.active:
+            if n.m > 0.0:
+                n.ax /= n.m
+                n.ay /= n.m
+                n.ay += 0.03
         
         self._step3()
         
-        self._compress_nodes2()
+        for n in self.active:
+            if n.m > 0.0:
+                n.u /= n.m
+                n.v /= n.m
 
         self._step4()
-    
+        
 class Node:
     def __init__(self):
         self.m = 0
@@ -284,10 +275,10 @@ class Particle:
     def __init__(self, material, x, y, u, v):
         self.cx = 0
         self.cy = 0
-        self.px = array('f', [0.0, 0.0, 0.0])
-        self.py = array('f', [0.0, 0.0, 0.0])
-        self.gx = array('f', [0.0, 0.0, 0.0])
-        self.gy = array('f', [0.0, 0.0, 0.0])
+        self.px = [0.0, 0.0, 0.0]
+        self.py = [0.0, 0.0, 0.0]
+        self.gx = [0.0, 0.0, 0.0]
+        self.gy = [0.0, 0.0, 0.0]
         
         self.material = material
         self.x = x
@@ -297,7 +288,7 @@ class Particle:
         try:
             self.color = pygame.Color(0, 0, 255, 255)
         except NameError:
-            self.color = (0, 0, 255, 255)
+            self.color = (0, 0, 255)
 
 def pygame_main(liquid):
     '''The main loop for the pygame interface. The pygame window will be 4 
@@ -362,7 +353,7 @@ def pyglet_main(liquid):
         colors = []
         for p in liquid.particles:
             vertices.extend([p.x, p.y, p.x - p.u, p.y - p.v])
-            colors.extend(p.color[:-1])
+            colors.extend(p.color)
             colors.extend([0, 0, 0])
         graphics.draw(
             len(liquid.particles)*2,
