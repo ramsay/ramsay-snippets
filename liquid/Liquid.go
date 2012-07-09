@@ -23,6 +23,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -60,23 +61,23 @@ import (
  */
 
 type Material struct {
-	m  float32
-	rd float32
-	k  float32
-	v  float32
-	d  float32
-	g  float32
+	m  float64
+	rd float64
+	k  float64
+	v  float64
+	d  float64
+	g  float64
 }
 
 type Node struct {
-	m      float32
-	d      float32
-	gx     float32
-	gy     float32
-	u      float32
-	v      float32
-	ax     float32
-	ay     float32
+	m      float64
+	d      float64
+	gx     float64
+	gy     float64
+	u      float64
+	v      float64
+	ax     float64
+	ay     float64
 	active bool
 }
 
@@ -84,23 +85,23 @@ type Node struct {
 // attributes of an object
 type Particle struct {
 	material *Material
-	x        float32
-	y        float32
-	u        float32
-	v        float32
-	cx       float32
-	cy       float32
-	px       [3]float32
-	py       [3]float32
-	gx       [3]float32
-	gy       [3]float32
+	x        float64
+	y        float64
+	u        float64
+	v        float64
+	cx       float64
+	cy       float64
+	px       [3]float64
+	py       [3]float64
+	gx       [3]float64
+	gy       [3]float64
 	color    sdl.Color
 }
 
-func MakeParticle(material *Material, x, y, u, v float32) *Particle {
+func MakeParticle(material *Material, x, y, u, v float64) *Particle {
 	return &Particle{
-		material, x, y, u, v, 0.0, 0.0, [3]float32{}, [3]float32{}, [3]float32{},
-		[3]float32{}, sdl.Color{0, 0, 255, 255}}
+		material, x, y, u, v, 0.0, 0.0, [3]float64{}, [3]float64{}, [3]float64{},
+		[3]float64{}, sdl.Color{0, 0, 255, 255}}
 }
 
 type Liquid struct {
@@ -109,8 +110,8 @@ type Liquid struct {
 	active      []*Node
 	pressed     bool
 	pressedprev bool
-	mouse       [2]float32
-	mouse_prev  [2]float32
+	mouse       [2]float64
+	mouse_prev  [2]float64
 	grid        [][]*Node
 	particles   []*Particle
 }
@@ -123,11 +124,11 @@ func MakeLiquid(width, height, rows, columns int) *Liquid {
 			grid[i][j] = new(Node)
 		}
 	}
-	water := &Material{3.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+	water := &Material{1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
 	particles := make([]*Particle, rows*columns)
 	for r := 0; r < rows; r++ {
 		for c := 0; c < columns; c++ {
-			particles[r*columns+c] = MakeParticle(water, float32(r), float32(c), 0.0, 0.0)
+			particles[r*columns+c] = MakeParticle(water, float64(r), float64(c), 0.0, 0.0)
 		}
 	}
 	return &Liquid{
@@ -136,15 +137,15 @@ func MakeLiquid(width, height, rows, columns int) *Liquid {
 		make([]*Node, 0, rows*columns),
 		false,
 		false,
-		[2]float32{},
-		[2]float32{},
+		[2]float64{},
+		[2]float64{},
 		grid,
 		particles,
 	}
 
 }
 
-func _equation1(pressure, gravity [3]float32, x float32) {
+func _equation1(pressure, gravity *[3]float64, x float64) {
 	pressure[0] = 0.5*x*x + 1.5*x + 1.125
 	gravity[0] = x + 1.5
 	x += 1.0
@@ -157,19 +158,19 @@ func _equation1(pressure, gravity [3]float32, x float32) {
 
 func (l *Liquid) _step1() {
 	for _, particle := range l.particles {
-		particle.cx = float32(int(particle.x - 0.5))
-		particle.cy = float32(int(particle.y - 0.5))
+		particle.cx = float64(int(particle.x - 0.5))
+		particle.cy = float64(int(particle.y - 0.5))
 
-		_equation1(particle.px, particle.gx, particle.cx-particle.x)
+		_equation1(&particle.px, &particle.gx, particle.cx-particle.x)
 
-		_equation1(particle.py, particle.gy, particle.cy-particle.y)
+		_equation1(&particle.py, &particle.gy, particle.cy-particle.y)
 
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
 				n := l.grid[int(particle.cx)+i][int(particle.cy)+j]
 				if n.active != true {
 					n.active = true
-					//l.active.append(n)
+					l.active = append(l.active, n)
 				}
 				phi := particle.px[i] * particle.py[j]
 				n.m += phi * particle.material.m
@@ -181,20 +182,21 @@ func (l *Liquid) _step1() {
 	}
 }
 
-func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
+func (l *Liquid) _density_summary(drag bool, mdx, mdy float64) {
 	var n01, n02, n11, n12 *Node
-	var cx, cy, cxi, cyi, pdx, pdy, C20, C02, C30, C03, csum1, csum2, C21, C31,
-		C12, C13, C11, density, pressure, fx, fy, u, u2, u3, v, v2, v3 float32
+	var cx, cy, cxi, cyi int
+	var pdx, pdy, C20, C02, C30, C03, csum1, csum2, C21, C31,
+		C12, C13, C11, density, pressure, fx, fy, u, u2, u3, v, v2, v3 float64
 	for _, p := range l.particles {
-		cx = p.x
-		cy = p.y
+		cx = int(p.x)
+		cy = int(p.y)
 		cxi = cx + 1
 		cyi = cy + 1
 
-		n01 = l.grid[int(cx)][int(cy)]
-		n02 = l.grid[int(cx)][int(cyi)]
-		n11 = l.grid[int(cxi)][int(cy)]
-		n12 = l.grid[int(cxi)][int(cyi)]
+		n01 = l.grid[cx][cy]
+		n02 = l.grid[cx][cyi]
+		n11 = l.grid[cxi][cy]
+		n12 = l.grid[cxi][cyi]
 
 		pdx = n11.d - n01.d
 		pdy = n02.d - n01.d
@@ -210,17 +212,18 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 		C13 = -2.0*n12.d + n11.gy + n12.gy + 2.0*csum2 - C03
 		C11 = n02.gx - C13 - C12 - n01.gx
 
-		u = p.x - cx
+		u = p.x - float64(cx)
 		u2 = u * u
 		u3 = u * u2
-		v = p.y - cy
+		v = p.y - float64(cy)
 		v2 = v * v
 		v3 = v * v2
 		density = (n01.d + n01.gx*u + n01.gy*v + C20*u2 + C02*v2 +
 			C30*u3 + C03*v3 + C21*u2*v + C31*u3*v + C12*u*
 			v2 + C13*u*v3 + C11*u*v)
 
-		if pressure = density - 1.0; pressure > 2.0 {
+		pressure = density - 1.0
+		if pressure > 2.0 {
 			pressure = 2.0
 		}
 
@@ -229,18 +232,18 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 
 		if p.x < 4.0 {
 			fx += p.material.m * (4.0 - p.x)
-		} else if p.x > float32(l.width) {
-			fx += p.material.m * (float32(l.width) - p.x)
+		} else if p.x > float64(l.width-5) {
+			fx += p.material.m * (float64(l.width-5) - p.x)
 		}
 		if p.y < 4.0 {
 			fy += p.material.m * (4.0 - p.y)
-		} else if p.y > float32(l.height) {
-			fy += p.material.m * (float32(l.height) - p.y)
+		} else if p.y > float64(l.height-5) {
+			fy += p.material.m * (float64(l.height-5) - p.y)
 		}
 
 		if drag {
-			vx := float32(math.Abs(float64(p.x - l.mouse[0])))
-			vy := float32(math.Abs(float64(p.y - l.mouse[1])))
+			vx := float64(math.Abs(float64(p.x - l.mouse[0])))
+			vy := float64(math.Abs(float64(p.y - l.mouse[1])))
 			if vx < 10.0 && 10.0 > vy {
 				weight := (p.material.m * (1.0 - vx*0.10) *
 					(1.0 - vy*0.10))
@@ -259,6 +262,7 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 	}
 }
 func (l *Liquid) _step3() {
+	var mu, mv float64
 	for _, p := range l.particles {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
@@ -269,8 +273,8 @@ func (l *Liquid) _step3() {
 			}
 		}
 
-		mu := p.material.m * p.u
-		mv := p.material.m * p.v
+		mu = p.material.m * p.u
+		mv = p.material.m * p.v
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
 				n := l.grid[int(p.cx)+i][int(p.cy)+j]
@@ -282,7 +286,7 @@ func (l *Liquid) _step3() {
 	}
 }
 func (l *Liquid) _step4() {
-	var gu, gv float32
+	var gu, gv float64
 	for _, p := range l.particles {
 		gu = 0.0
 		gv = 0.0
@@ -299,71 +303,64 @@ func (l *Liquid) _step4() {
 		p.u += 1.0 * (gu - p.u)
 		p.v += 1.0 * (gv - p.v)
 		if p.x < 1.0 {
-			p.x = 1.0 + rand.Float32()*0.01
+			p.x = 1.0 + rand.Float64()*0.01
 			p.u = 0.0
-		} else if p.x > float32(l.width)-2 {
-			p.x = float32(l.width) - 3 - rand.Float32()*0.01
+		} else if p.x > float64(l.width)-2 {
+			p.x = float64(l.width) - 3 - rand.Float64()*0.01
 			p.u = 0.0
 		}
 		if p.y < 1.0 {
-			p.y = 1.0 + rand.Float32()*0.01
+			p.y = 1.0 + rand.Float64()*0.01
 			p.v = 0.0
-		} else if p.y > float32(l.height)-2 {
-			p.y = float32(l.height) - 3 - rand.Float32()*0.01
+		} else if p.y > float64(l.height)-2 {
+			p.y = float64(l.height) - 3 - rand.Float64()*0.01
 			p.v = 0.0
 		}
 	}
 }
 
-func (l *Liquid) simulate(step chan int) {
+func (l *Liquid) simulate() {
 	drag := false
-	mdx := float32(0.0)
-	mdy := float32(0.0)
-	for {
-		// Notify main loop to refresh screen
-		step <- 1
-		if l.pressed && l.pressedprev {
-			drag = true
-			mdx = l.mouse[0] - l.mouse_prev[0]
-			mdy = l.mouse[1] - l.mouse_prev[1]
-		}
-		l.pressedprev = l.pressed
-		l.mouse_prev[0] = l.mouse[0]
-		l.mouse_prev[1] = l.mouse[1]
-
-		for i := 0; i < l.height; i++ {
-			for j := 0; j < l.width; j++ {
-				if l.grid[i][j].active {
-					l.grid[i][j] = new(Node)
-				}
-			}
-		}
-		l._step1()
-
-		l._density_summary(drag, mdx, mdy)
-
-		for _, n := range l.active {
-			if n.m > 0.0 {
-				n.ax /= n.m
-				n.ay /= n.m
-				n.ay += 0.03
-			}
-		}
-
-		l._step3()
-
-		for _, n := range l.active {
-			if n.m > 0.0 {
-				n.u /= n.m
-				n.v /= n.m
-			}
-		}
-
-		l._step4()
+	mdx := float64(0.0)
+	mdy := float64(0.0)
+	if l.pressed && l.pressedprev {
+		drag = true
+		mdx = l.mouse[0] - l.mouse_prev[0]
+		mdy = l.mouse[1] - l.mouse_prev[1]
 	}
+	l.pressedprev = l.pressed
+	l.mouse_prev[0] = l.mouse[0]
+	l.mouse_prev[1] = l.mouse[1]
+
+	for i := 0; i < l.height; i++ {
+		for j := 0; j < l.width; j++ {
+			if l.grid[i][j].active {
+				l.grid[i][j] = new(Node)
+			}
+		}
+	}
+	l._step1()
+	l._density_summary(drag, mdx, mdy)
+	for _, n := range l.active {
+		if n.m > 0.0 {
+			n.ax /= n.m
+			n.ay /= n.m
+			n.ay += 0.03
+		}
+	}
+
+	l._step3()
+	for _, n := range l.active {
+		if n.m > 0.0 {
+			n.u /= n.m
+			n.v /= n.m
+		}
+	}
+
+	l._step4()
 }
 
-func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float32) {
+func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float64) {
 	surf.Lock() // Get Lock before creating the surface slice.
 
 	var pixels []uint32
@@ -371,8 +368,8 @@ func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float32) {
 	sliceHeader.Cap = int(surf.H * surf.W)
 	sliceHeader.Len = int(surf.H * surf.W)
 	sliceHeader.Data = uintptr(unsafe.Pointer(surf.Pixels))
-	dx := math.Abs(float64(x2 - x1))
-	dy := math.Abs(float64(y2 - y1))
+	dx := float64(math.Abs(float64(x2 - x1)))
+	dy := float64(math.Abs(float64(y2 - y1)))
 	var sx, sy int
 	if x1 < x2 {
 		sx = 1
@@ -385,20 +382,26 @@ func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float32) {
 		sy = -1
 	}
 	err := dx - dy
-	for {
-		pixels[int32(x1)*surf.W+int32(y1)] = sdl.MapRGBA(
+	for i := 0; i < 5; i++ {
+		if x1 < 0 || y1 < 0 {
+			break
+		}
+		if int32(x1) >= surf.W || int32(y1) >= surf.H {
+			break
+		}
+		pixels[int32(y1)*surf.W+int32(x1)] = sdl.MapRGBA(
 			surf.Format, color.R, color.G, color.B, color.Unused)
-		if x1 == x2 && y1 == y2 {
+		if int(x1) == int(x2) && int(y1) == int(y2) {
 			break
 		}
 		e2 := 2 * err
 		if e2 > -dy {
 			err = err - dy
-			x1 = x1 + float32(sx)
+			x1 = x1 + float64(sx)
 		}
 		if e2 < dx {
 			err = err + dx
-			y1 = y1 + float32(sy)
+			y1 = y1 + float64(sy)
 		}
 	}
 	surf.Unlock()
@@ -423,11 +426,10 @@ func SdlMain(l *Liquid) {
 	if canvas == nil {
 		panic(sdl.GetError())
 	}
-	step := make(chan int)
-	go l.simulate(step)
+	ticker := time.NewTicker(time.Second / 2)
 	for {
 		select {
-		case <-step:
+		case <-ticker.C:
 			//clear
 			canvas.FillRect(nil, 0x000000)
 			//draw simulation state
@@ -440,8 +442,6 @@ func SdlMain(l *Liquid) {
 				)
 			}
 			canvas.Flip()
-
-		//get events
 		case event := <-sdl.Events:
 			switch e := event.(type) {
 			case sdl.QuitEvent:
@@ -455,10 +455,11 @@ func SdlMain(l *Liquid) {
 				}
 
 			case sdl.MouseMotionEvent:
-				l.mouse[0] = float32(e.X / 4)
-				l.mouse[1] = float32(e.Y / 4)
+				l.mouse[0] = float64(e.X / 4)
+				l.mouse[1] = float64(e.Y / 4)
 			}
 		}
+		l.simulate()
 	}
 }
 
@@ -485,6 +486,6 @@ func main() {
 	       choices=['pygame', 'pyglet'])
 	   ARGS = PARSER.parse_args()
 	*/
-	liquid := MakeLiquid(100, 100, 10, 10)
+	liquid := MakeLiquid(100, 100, 50, 50)
 	SdlMain(liquid)
 }
