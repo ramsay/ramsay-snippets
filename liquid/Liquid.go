@@ -22,7 +22,8 @@ import (
 	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
 	"math"
 	"math/rand"
-	"time"
+	"reflect"
+	"unsafe"
 )
 
 /* Material
@@ -79,8 +80,6 @@ type Node struct {
 	active bool
 }
 
-type Color struct{ r, g, b, a uint8 }
-
 // Particles are value holders that manage the mathematical and physical
 // attributes of an object
 type Particle struct {
@@ -95,13 +94,13 @@ type Particle struct {
 	py       [3]float32
 	gx       [3]float32
 	gy       [3]float32
-	color    Color
+	color    sdl.Color
 }
 
 func MakeParticle(material *Material, x, y, u, v float32) *Particle {
 	return &Particle{
 		material, x, y, u, v, 0.0, 0.0, [3]float32{}, [3]float32{}, [3]float32{},
-		[3]float32{}, Color{0, 0, 255, 255}}
+		[3]float32{}, sdl.Color{0, 0, 255, 255}}
 }
 
 type Liquid struct {
@@ -316,52 +315,93 @@ func (l *Liquid) _step4() {
 	}
 }
 
-func (l *Liquid) simulate() {
+func (l *Liquid) simulate(step chan int) {
 	drag := false
 	mdx := float32(0.0)
 	mdy := float32(0.0)
+	for {
+		// Notify main loop to refresh screen
+		step <- 1
+		if l.pressed && l.pressedprev {
+			drag = true
+			mdx = l.mouse[0] - l.mouse_prev[0]
+			mdy = l.mouse[1] - l.mouse_prev[1]
+		}
+		l.pressedprev = l.pressed
+		l.mouse_prev[0] = l.mouse[0]
+		l.mouse_prev[1] = l.mouse[1]
 
-	if l.pressed && l.pressedprev {
-		drag = true
-		mdx = l.mouse[0] - l.mouse_prev[0]
-		mdy = l.mouse[1] - l.mouse_prev[1]
-	}
-	l.pressedprev = l.pressed
-	l.mouse_prev[0] = l.mouse[0]
-	l.mouse_prev[1] = l.mouse[1]
-
-	for i := 0; i < l.height; i++ {
-		for j := 0; j < l.width; j++ {
-			if l.grid[i][j].active {
-				l.grid[i][j] = new(Node)
+		for i := 0; i < l.height; i++ {
+			for j := 0; j < l.width; j++ {
+				if l.grid[i][j].active {
+					l.grid[i][j] = new(Node)
+				}
 			}
 		}
-	}
-	l._step1()
+		l._step1()
 
-	l._density_summary(drag, mdx, mdy)
+		l._density_summary(drag, mdx, mdy)
 
-	for _, n := range l.active {
-		if n.m > 0.0 {
-			n.ax /= n.m
-			n.ay /= n.m
-			n.ay += 0.03
+		for _, n := range l.active {
+			if n.m > 0.0 {
+				n.ax /= n.m
+				n.ay /= n.m
+				n.ay += 0.03
+			}
 		}
-	}
 
-	l._step3()
+		l._step3()
 
-	for _, n := range l.active {
-		if n.m > 0.0 {
-			n.u /= n.m
-			n.v /= n.m
+		for _, n := range l.active {
+			if n.m > 0.0 {
+				n.u /= n.m
+				n.v /= n.m
+			}
 		}
-	}
 
-	l._step4()
+		l._step4()
+	}
 }
 
-func DrawLine(screen *sdl.Surface, color Color, x1, y1, x2, y2 float32) {
+func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float32) {
+	surf.Lock() // Get Lock before creating the surface slice.
+
+	var pixels []uint32
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&pixels)))
+	sliceHeader.Cap = int(surf.H * surf.W)
+	sliceHeader.Len = int(surf.H * surf.W)
+	sliceHeader.Data = uintptr(unsafe.Pointer(surf.Pixels))
+	dx := math.Abs(float64(x2 - x1))
+	dy := math.Abs(float64(y2 - y1))
+	var sx, sy int
+	if x1 < x2 {
+		sx = 1
+	} else {
+		sx = -1
+	}
+	if y1 < y2 {
+		sy = 1
+	} else {
+		sy = -1
+	}
+	err := dx - dy
+	for {
+		pixels[int32(x1)*surf.W+int32(y1)] = sdl.MapRGBA(
+			surf.Format, color.R, color.G, color.B, color.Unused)
+		if x1 == x2 && y1 == y2 {
+			break
+		}
+		e2 := 2 * err
+		if e2 > -dy {
+			err = err - dy
+			x1 = x1 + float32(sx)
+		}
+		if e2 < dx {
+			err = err + dx
+			y1 = y1 + float32(sy)
+		}
+	}
+	surf.Unlock()
 }
 
 /**
@@ -383,11 +423,11 @@ func SdlMain(l *Liquid) {
 	if canvas == nil {
 		panic(sdl.GetError())
 	}
-
-	ticker := time.NewTicker(1e9 / 2)
+	step := make(chan int)
+	go l.simulate(step)
 	for {
 		select {
-		case <-ticker.C:
+		case <-step:
 			//clear
 			canvas.FillRect(nil, 0x000000)
 			//draw simulation state
@@ -419,8 +459,6 @@ func SdlMain(l *Liquid) {
 				l.mouse[1] = float32(e.Y / 4)
 			}
 		}
-		// advance simulation
-		l.simulate()
 	}
 }
 
