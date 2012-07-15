@@ -23,7 +23,6 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
-	"time"
 	"unsafe"
 )
 
@@ -319,55 +318,70 @@ func (l *Liquid) _step4() {
 	}
 }
 
-func (l *Liquid) simulate() {
-	drag := false
-	mdx := float64(0.0)
-	mdy := float64(0.0)
-	if l.pressed && l.pressedprev {
-		drag = true
-		mdx = l.mouse[0] - l.mouse_prev[0]
-		mdy = l.mouse[1] - l.mouse_prev[1]
-	}
-	l.pressedprev = l.pressed
-	l.mouse_prev[0] = l.mouse[0]
-	l.mouse_prev[1] = l.mouse[1]
+func (l *Liquid) simulate(ch chan int) {
 
-	for i := 0; i < l.height; i++ {
-		for j := 0; j < l.width; j++ {
-			if l.grid[i][j].active {
-				l.grid[i][j] = new(Node)
+	for i := 0; ; i++ {
+		drag := false
+		mdx := float64(0.0)
+		mdy := float64(0.0)
+		if l.pressed && l.pressedprev {
+			drag = true
+			mdx = l.mouse[0] - l.mouse_prev[0]
+			mdy = l.mouse[1] - l.mouse_prev[1]
+		}
+		l.pressedprev = l.pressed
+		l.mouse_prev[0] = l.mouse[0]
+		l.mouse_prev[1] = l.mouse[1]
+
+		for i := 0; i < l.height; i++ {
+			for j := 0; j < l.width; j++ {
+				if l.grid[i][j].active {
+					l.grid[i][j] = new(Node)
+				}
 			}
 		}
-	}
-	l._step1()
-	l._density_summary(drag, mdx, mdy)
-	for _, n := range l.active {
-		if n.m > 0.0 {
-			n.ax /= n.m
-			n.ay /= n.m
-			n.ay += 0.03
+		l._step1()
+		l._density_summary(drag, mdx, mdy)
+		for _, n := range l.active {
+			if n.m > 0.0 {
+				n.ax /= n.m
+				n.ay /= n.m
+				n.ay += 0.03
+			}
 		}
-	}
 
-	l._step3()
-	for _, n := range l.active {
-		if n.m > 0.0 {
-			n.u /= n.m
-			n.v /= n.m
+		l._step3()
+		for _, n := range l.active {
+			if n.m > 0.0 {
+				n.u /= n.m
+				n.v /= n.m
+			}
 		}
-	}
 
-	l._step4()
+		l._step4()
+		ch <- i
+	}
 }
 
-func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float64) {
-	surf.Lock() // Get Lock before creating the surface slice.
+type Surface struct {
+	surface *sdl.Surface
+	pixels  []uint32
+}
 
-	var pixels []uint32
-	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&pixels)))
+func MakeSurface(surf *sdl.Surface) *Surface {
+	surf.Lock() // Get Lock before creating the surface slice.
+	surface := &Surface{surf, nil}
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&surface.pixels)))
 	sliceHeader.Cap = int(surf.H * surf.W)
 	sliceHeader.Len = int(surf.H * surf.W)
 	sliceHeader.Data = uintptr(unsafe.Pointer(surf.Pixels))
+	surf.Unlock()
+	return surface
+}
+
+func DrawLine(surf *Surface, color sdl.Color, x1, y1, x2, y2 float64) {
+	surf.surface.Lock() // Get Lock before creating the surface slice.
+
 	dx := float64(math.Abs(float64(x2 - x1)))
 	dy := float64(math.Abs(float64(y2 - y1)))
 	var sx, sy int
@@ -386,11 +400,11 @@ func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float64) {
 		if x1 < 0 || y1 < 0 {
 			break
 		}
-		if int32(x1) >= surf.W || int32(y1) >= surf.H {
+		if int32(x1) >= surf.surface.W || int32(y1) >= surf.surface.H {
 			break
 		}
-		pixels[int32(y1)*surf.W+int32(x1)] = sdl.MapRGBA(
-			surf.Format, color.R, color.G, color.B, color.Unused)
+		surf.pixels[int32(y1)*surf.surface.W+int32(x1)] = sdl.MapRGBA(
+			surf.surface.Format, color.R, color.G, color.B, color.Unused)
 		if int(x1) == int(x2) && int(y1) == int(y2) {
 			break
 		}
@@ -404,7 +418,7 @@ func DrawLine(surf *sdl.Surface, color sdl.Color, x1, y1, x2, y2 float64) {
 			y1 = y1 + float64(sy)
 		}
 	}
-	surf.Unlock()
+	surf.surface.Unlock()
 }
 
 /**
@@ -426,16 +440,19 @@ func SdlMain(l *Liquid) {
 	if canvas == nil {
 		panic(sdl.GetError())
 	}
-	ticker := time.NewTicker(time.Second / 2)
+	surf := MakeSurface(canvas)
+
+	ch := make(chan int)
+	go l.simulate(ch)
 	for {
 		select {
-		case <-ticker.C:
+		case <-ch:
 			//clear
 			canvas.FillRect(nil, 0x000000)
 			//draw simulation state
 			for _, p := range l.particles {
 				DrawLine(
-					canvas,
+					surf,
 					p.color,
 					4*p.x, 4*p.y,
 					4*(p.x-p.u), 4*(p.y-p.v),
@@ -459,7 +476,6 @@ func SdlMain(l *Liquid) {
 				l.mouse[1] = float64(e.Y / 4)
 			}
 		}
-		l.simulate()
 	}
 }
 
