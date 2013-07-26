@@ -19,11 +19,13 @@
 package main
 
 import (
-	"github.com/0xe2-0x9a-0x9b/Go-SDL/sdl"
+	"github.com/neagix/Go-SDL/sdl"
 	"math"
 	"math/rand"
 	"reflect"
 	"unsafe"
+	"time"
+	"fmt"
 )
 
 /* Material
@@ -103,14 +105,18 @@ func MakeParticle(material *Material, x, y, u, v float64) *Particle {
 		[3]float64{}, sdl.Color{0, 0, 255, 255}}
 }
 
+type MouseState struct {
+    pressed bool
+    x       float64
+    y       float64
+}
+
 type Liquid struct {
-	width       int
-	height      int
-	active      []*Node
+	width       float64
+	height      float64
 	pressed     bool
 	pressedprev bool
-	mouse       [2]float64
-	mouse_prev  [2]float64
+	mouse       MouseState
 	grid        [][]*Node
 	particles   []*Particle
 }
@@ -131,13 +137,11 @@ func MakeLiquid(width, height, rows, columns int) *Liquid {
 		}
 	}
 	return &Liquid{
-		width,
-		height,
-		make([]*Node, 0, rows*columns),
+		float64(width),
+		float64(height),
 		false,
 		false,
-		[2]float64{},
-		[2]float64{},
+		MouseState{false, 0.0, 0.0},
 		grid,
 		particles,
 	}
@@ -169,7 +173,6 @@ func (l *Liquid) _step1() {
 				n := l.grid[int(particle.cx)+i][int(particle.cy)+j]
 				if n.active != true {
 					n.active = true
-					l.active = append(l.active, n)
 				}
 				phi := particle.px[i] * particle.py[j]
 				n.m += phi * particle.material.m
@@ -231,18 +234,18 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float64) {
 
 		if p.x < 4.0 {
 			fx += p.material.m * (4.0 - p.x)
-		} else if p.x > float64(l.width-5) {
-			fx += p.material.m * (float64(l.width-5) - p.x)
+		} else if p.x > l.width-5 {
+			fx += p.material.m * (l.width-5 - p.x)
 		}
 		if p.y < 4.0 {
 			fy += p.material.m * (4.0 - p.y)
-		} else if p.y > float64(l.height-5) {
-			fy += p.material.m * (float64(l.height-5) - p.y)
+		} else if p.y > l.height-5 {
+			fy += p.material.m * (l.height-5 - p.y)
 		}
 
 		if drag {
-			vx := float64(math.Abs(float64(p.x - l.mouse[0])))
-			vy := float64(math.Abs(float64(p.y - l.mouse[1])))
+			vx := math.Abs(p.x - l.mouse.x)
+			vy := math.Abs(p.y - l.mouse.y)
 			if vx < 10.0 && 10.0 > vy {
 				weight := (p.material.m * (1.0 - vx*0.10) *
 					(1.0 - vy*0.10))
@@ -304,63 +307,65 @@ func (l *Liquid) _step4() {
 		if p.x < 1.0 {
 			p.x = 1.0 + rand.Float64()*0.01
 			p.u = 0.0
-		} else if p.x > float64(l.width)-2 {
-			p.x = float64(l.width) - 3 - rand.Float64()*0.01
+		} else if p.x > l.width-2 {
+			p.x = l.width - 3 - rand.Float64()*0.01
 			p.u = 0.0
 		}
 		if p.y < 1.0 {
 			p.y = 1.0 + rand.Float64()*0.01
 			p.v = 0.0
-		} else if p.y > float64(l.height)-2 {
-			p.y = float64(l.height) - 3 - rand.Float64()*0.01
+		} else if p.y > l.height-2 {
+			p.y = l.height - 3 - rand.Float64()*0.01
 			p.v = 0.0
 		}
 	}
 }
 
-func (l *Liquid) simulate(ch chan int) {
 
-	for i := 0; ; i++ {
-		drag := false
-		mdx := float64(0.0)
-		mdy := float64(0.0)
-		if l.pressed && l.pressedprev {
-			drag = true
-			mdx = l.mouse[0] - l.mouse_prev[0]
-			mdy = l.mouse[1] - l.mouse_prev[1]
-		}
-		l.pressedprev = l.pressed
-		l.mouse_prev[0] = l.mouse[0]
-		l.mouse_prev[1] = l.mouse[1]
+func (l *Liquid) simulate(mouse MouseState) {
 
-		for i := 0; i < l.height; i++ {
-			for j := 0; j < l.width; j++ {
-				if l.grid[i][j].active {
-					l.grid[i][j] = new(Node)
-				}
-			}
-		}
-		l._step1()
-		l._density_summary(drag, mdx, mdy)
-		for _, n := range l.active {
-			if n.m > 0.0 {
-				n.ax /= n.m
-				n.ay /= n.m
-				n.ay += 0.03
-			}
-		}
-
-		l._step3()
-		for _, n := range l.active {
-			if n.m > 0.0 {
-				n.u /= n.m
-				n.v /= n.m
-			}
-		}
-
-		l._step4()
-		ch <- i
+	drag := false
+	mdx := float64(0.0)
+	mdy := float64(0.0)
+	if mouse.pressed && l.mouse.pressed {
+		drag = true
+		mdx = mouse.x - l.mouse.x
+		mdy = mouse.y - l.mouse.y
 	}
+	l.mouse = mouse
+
+	for i := 0; i < int(l.height); i++ {
+		for j := 0; j < int(l.width); j++ {
+			if l.grid[i][j].active {
+				l.grid[i][j] = new(Node)
+			}
+		}
+	}
+	l._step1()
+	l._density_summary(drag, mdx, mdy)
+
+	for i := 0; i < int(l.height); i++ {
+		for j := 0; j < int(l.width); j++ {
+		    if l.grid[i][j].active && l.grid[i][j].m > 0.0 {
+    			l.grid[i][j].ax /= l.grid[i][j].m
+	    		l.grid[i][j].ay /= l.grid[i][j].m
+	    		l.grid[i][j].ay += 0.03	    
+		    }
+		}
+	}
+
+	l._step3()
+	
+	for i := 0; i < int(l.height); i++ {
+		for j := 0; j < int(l.width); j++ {
+		    if l.grid[i][j].active && l.grid[i][j].m > 0.0 {
+    			l.grid[i][j].u /= l.grid[i][j].m
+	    		l.grid[i][j].v /= l.grid[i][j].m
+		    }
+		}
+	}
+
+	l._step4()
 }
 
 type Surface struct {
@@ -421,6 +426,45 @@ func DrawLine(surf *Surface, color sdl.Color, x1, y1, x2, y2 float64) {
 	surf.surface.Unlock()
 }
 
+func DrawLinePrelocked(surf *Surface, color sdl.Color, x1, y1, x2, y2 float64) {
+	dx := float64(math.Abs(float64(x2 - x1)))
+	dy := float64(math.Abs(float64(y2 - y1)))
+	var sx, sy int
+	if x1 < x2 {
+		sx = 1
+	} else {
+		sx = -1
+	}
+	if y1 < y2 {
+		sy = 1
+	} else {
+		sy = -1
+	}
+	err := dx - dy
+	for i := 0; i < 5; i++ {
+		if x1 < 0 || y1 < 0 {
+			break
+		}
+		if int32(x1) >= surf.surface.W || int32(y1) >= surf.surface.H {
+			break
+		}
+		surf.pixels[int32(y1)*surf.surface.W+int32(x1)] = sdl.MapRGBA(
+			surf.surface.Format, color.R, color.G, color.B, color.Unused)
+		if int(x1) == int(x2) && int(y1) == int(y2) {
+			break
+		}
+		e2 := 2 * err
+		if e2 > -dy {
+			err = err - dy
+			x1 = x1 + float64(sx)
+		}
+		if e2 < dx {
+			err = err + dx
+			y1 = y1 + float64(sy)
+		}
+	}
+}
+
 /**
  * The main loop for the pygame interface. The pygame window will be 4 
  * times wider and 4 times taller than the width and height of the liquid 
@@ -435,47 +479,67 @@ func SdlMain(l *Liquid) {
 
 	defer sdl.Quit()
 
-	canvas := sdl.SetVideoMode(l.width*4, l.height*4, 32, 0)
+	canvas := sdl.SetVideoMode(int(l.width)*4, int(l.height)*4, 32, 0)
 
 	if canvas == nil {
 		panic(sdl.GetError())
 	}
+	
 	surf := MakeSurface(canvas)
-
-	ch := make(chan int)
-	go l.simulate(ch)
-	for {
-		select {
-		case <-ch:
-			//clear
-			canvas.FillRect(nil, 0x000000)
-			//draw simulation state
-			for _, p := range l.particles {
-				DrawLine(
-					surf,
-					p.color,
-					4*p.x, 4*p.y,
-					4*(p.x-p.u), 4*(p.y-p.v),
-				)
-			}
-			canvas.Flip()
+	mouse := MouseState{false, 0.0, 0.0}
+	//mch := make(chan MouseState)
+	eventtime := int64(0)
+	simulatetime := int64(0)
+	drawtime := int64(0)
+	start := time.Now()
+	t1 := time.Now()
+	for frames := 0; ; frames++{
+	    t1 = time.Now()
+		select {		
 		case event := <-sdl.Events:
 			switch e := event.(type) {
 			case sdl.QuitEvent:
+			    fmt.Printf("%v frames\n", frames)
+			    fmt.Printf("%v frames/s\n", float64(frames)/time.Since(start).Seconds())
+			    fmt.Printf("%v time polling events\n", time.Duration(eventtime))
+			    fmt.Printf("%v time simulating\n", time.Duration(simulatetime))
+			    fmt.Printf("%v time drawing\n", time.Duration(drawtime))
 				return
 			case sdl.MouseButtonEvent:
 				if e.State == sdl.PRESSED {
-					l.pressed = true
+					mouse.pressed = true
 				}
 				if e.State == sdl.RELEASED {
-					l.pressed = false
+					mouse.pressed = false
 				}
-
 			case sdl.MouseMotionEvent:
-				l.mouse[0] = float64(e.X / 4)
-				l.mouse[1] = float64(e.Y / 4)
+				mouse.x = float64(e.X / 4)
+				mouse.y = float64(e.Y / 4)
 			}
+		default:
+		    mouse.pressed = mouse.pressed
 		}
+		eventtime += time.Since(t1).Nanoseconds()
+		
+		t1 = time.Now()
+        l.simulate(mouse)
+        simulatetime += time.Since(t1).Nanoseconds()
+		
+		t1 = time.Now()
+        canvas.FillRect(nil, 0x000000)
+	    //draw simulation state
+	    surf.surface.Lock()
+	    for _, p := range l.particles {
+		    DrawLinePrelocked(
+			    surf,
+			    p.color,
+			    4*p.x, 4*p.y,
+			    4*(p.x-p.u), 4*(p.y-p.v),
+		    )
+	    }
+	    surf.surface.Unlock()
+	    canvas.Flip()
+		drawtime += time.Since(t1).Nanoseconds()
 	}
 }
 
