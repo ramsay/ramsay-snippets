@@ -1,5 +1,6 @@
 /**
- * Liquid.go - Go+SDL port V1 Robert Rasmay
+ * Liquid.go - Go+SDL port V1 Robert Rasmay (2013)
+ * Liquid.go - Go+SDL port V2 Robert Ramsay (2021)
  * MIT License ( http://www.opensource.org/licenses/mit-license.php )
  *
  * JS version:
@@ -20,10 +21,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/veandco/go-sdl2/sdl"
 	"image/color"
 	"math/rand"
 	"time"
+
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 /* Material
@@ -119,14 +121,26 @@ func NewNodemap(width int, height int) *Nodemap {
 	}
 }
 
-func (nm *Nodemap) GetNode(x, y int) *Node {
-	return nm.nodes[nm.width*y+x]
+func (nm *Nodemap) Get(x, y int) *Node {
+	return nm.nodes[nm.height*y+x]
+}
+
+type NodeFunctor func(*Node)
+
+func (nm *Nodemap) Each(functor NodeFunctor) {
+	for i := range nm.nodes {
+		if nm.nodes[i].active {
+			functor(nm.nodes[i])
+		}
+	}
 }
 
 func (nm *Nodemap) Reset() {
 	emptyNode := &Node{}
 	for i := range nm.nodes {
-		*(nm.nodes[i]) = *emptyNode
+		if nm.nodes[i].active {
+			*(nm.nodes[i]) = *emptyNode
+		}
 	}
 }
 
@@ -172,8 +186,7 @@ func (l *Liquid) _step1() {
 
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				n := l.grid.GetNode(int(particle.cx)+i, int(particle.cy)+j)
-				// n := l.grid[int(particle.cx)+i][int(particle.cy)+j]
+				n := l.grid.Get(int(particle.cx)+i, int(particle.cy)+j)
 				if n.active != true {
 					n.active = true
 				}
@@ -198,10 +211,10 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 		cxi = cx + 1
 		cyi = cy + 1
 
-		n01 = l.grid.GetNode(cx, cy)
-		n02 = l.grid.GetNode(cx, cyi)
-		n11 = l.grid.GetNode(cxi, cy)
-		n12 = l.grid.GetNode(cxi, cyi)
+		n01 = l.grid.Get(cx, cy)
+		n02 = l.grid.Get(cx, cyi)
+		n11 = l.grid.Get(cxi, cy)
+		n12 = l.grid.Get(cxi, cyi)
 
 		pdx = n11.d - n01.d
 		pdy = n02.d - n01.d
@@ -258,7 +271,7 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 		}
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				n := l.grid.GetNode(int(p.cx)+i, int(p.cy)+j)
+				n := l.grid.Get(int(p.cx)+i, int(p.cy)+j)
 				phi := p.px[i] * p.py[j]
 				n.ax += -(p.gx[i] * p.py[j] * pressure) + fx*phi
 				n.ay += -(p.px[i] * p.gy[j] * pressure) + fy*phi
@@ -266,12 +279,13 @@ func (l *Liquid) _density_summary(drag bool, mdx, mdy float32) {
 		}
 	}
 }
+
 func (l *Liquid) _step3() {
 	var mu, mv float32
 	for _, p := range l.particles {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				n := l.grid.GetNode(int(p.cx)+i, int(p.cy)+j)
+				n := l.grid.Get(int(p.cx)+i, int(p.cy)+j)
 				phi := p.px[i] * p.py[j]
 				p.u += phi * n.ax
 				p.v += phi * n.ay
@@ -282,7 +296,7 @@ func (l *Liquid) _step3() {
 		mv = p.material.m * p.v
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				n := l.grid.GetNode(int(p.cx)+i, int(p.cy)+j)
+				n := l.grid.Get(int(p.cx)+i, int(p.cy)+j)
 				phi := p.px[i] * p.py[j]
 				n.u += phi * mu
 				n.v += phi * mv
@@ -290,6 +304,7 @@ func (l *Liquid) _step3() {
 		}
 	}
 }
+
 func (l *Liquid) _step4() {
 	var gu, gv float32
 	for _, p := range l.particles {
@@ -297,7 +312,7 @@ func (l *Liquid) _step4() {
 		gv = 0.0
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
-				n := l.grid.GetNode(int(p.cx)+i, int(p.cy)+j)
+				n := l.grid.Get(int(p.cx)+i, int(p.cy)+j)
 				phi := p.px[i] * p.py[j]
 				gu += phi * n.u
 				gv += phi * n.v
@@ -307,6 +322,8 @@ func (l *Liquid) _step4() {
 		p.y += gv
 		p.u += 1.0 * (gu - p.u)
 		p.v += 1.0 * (gv - p.v)
+
+		// bounce off walls
 		if p.x < 1.0 {
 			p.x = 1.0 + rand.Float32()*0.01
 			p.u = 0.0
@@ -341,31 +358,20 @@ func (l *Liquid) simulate(mouse MouseState) {
 	l._step1()
 	l._density_summary(drag, mdx, mdy)
 
-	for i := 0; i < int(l.height); i++ {
-		for j := 0; j < int(l.width); j++ {
-			n := l.grid.GetNode(i, j)
-			if n.active && n.m > 0.0 {
-
-			}
-			//if l.grid[i][j].active && l.grid[i][j].m > 0.0 {
-			//	l.grid[i][j].ax /= l.grid[i][j].m
-			//	l.grid[i][j].ay /= l.grid[i][j].m
-			//	l.grid[i][j].ay += 0.03
-			//}
-		}
-	}
+	// Apply gravity ?
+	l.grid.Each(func(n *Node) {
+		n.ax /= n.m
+		n.ay /= n.m
+		n.ay += 0.03
+	})
 
 	l._step3()
 
-	for i := 0; i < int(l.height); i++ {
-		for j := 0; j < int(l.width); j++ {
-			n := l.grid.GetNode(i, j)
-			if n.active && n.m > 0.0 {
-				n.u /= n.m
-				n.v /= n.m
-			}
-		}
-	}
+	// Apply pressure ?
+	l.grid.Each(func(n *Node) {
+		n.u /= n.m
+		n.v /= n.m
+	})
 
 	l._step4()
 }
@@ -377,109 +383,25 @@ func Abs(val float32) float32 {
 	return val
 }
 
-func DrawLine(surf *sdl.Surface, color color.Color, x1, y1, x2, y2 float32) {
-	surf.Lock() // Get Lock before creating the surface slice.
-	var (
-		dx = Abs(x2 - x1)
-		dy = Abs(y2 - y1)
-		sx = float32(-1)
-		sy = float32(-1)
-	)
-	if x1 < x2 {
-		sx = 1
-	}
-	if y1 < y2 {
-		sy = 1
-	}
-
-	err := dx - dy
-	for i := 0; i < 5; i++ {
-		if x1 < 0 || y1 < 0 {
-			break
-		}
-		if int32(x1) >= surf.W || int32(y1) >= surf.H {
-			break
-		}
-		surf.Set(int(x1), int(y1), color)
-		//pixels[int32(y1)*surf.W+int32(x1)] = sdl.MapRGBA(
-		//	surf.Format, color.R, color.G, color.B, 1)
-		if int(x1) == int(x2) && int(y1) == int(y2) {
-			break
-		}
-		e2 := 2 * err
-		if e2 > -dy {
-			err = err - dy
-			x1 = x1 + sx
-		}
-		if e2 < dx {
-			err = err + dx
-			y1 = y1 + sy
-		}
-	}
-	surf.Unlock()
-}
-
-func DrawLinePrelocked(surf *sdl.Surface, color color.Color, x1, y1, x2, y2 float32) {
-	var (
-		dx = Abs(x2 - x1)
-		dy = Abs(y2 - y1)
-		sx = float32(-1)
-		sy = float32(-1)
-	)
-	if x1 < x2 {
-		sx = 1
-	}
-	if y1 < y2 {
-		sy = 1
-	}
-	err := dx - dy
-	for i := 0; i < 5; i++ {
-		if x1 < 0 || y1 < 0 {
-			break
-		}
-		if int32(x1) >= surf.W || int32(y1) >= surf.H {
-			break
-		}
-		surf.Set(int(x1), int(y1), color)
-		// pixels[int32(y1)*surf.W+int32(x1)] = sdl.MapRGBA(surf.Format, color.R, color.G, color.B, 1)
-		if int(x1) == int(x2) && int(y1) == int(y2) {
-			break
-		}
-		e2 := 2 * err
-		if e2 > -dy {
-			err = err - dy
-			x1 = x1 + sx
-		}
-		if e2 < dx {
-			err = err + dx
-			y1 = y1 + sy
-		}
-	}
-}
-
-func renderloop(stats *Stats, surf *sdl.Surface, renderer *sdl.Renderer, l *Liquid, mouse *MouseState, done chan bool) {
-	ticker := time.NewTicker(50 * time.Millisecond)
+func renderloop(stats *Stats, renderer *sdl.Renderer, l *Liquid, mouse *MouseState, done chan bool) {
 	for stats.running {
-		select {
-		case <-ticker.C:
-			stats.frames++
-			stats.t = time.Now()
-			l.simulate(*mouse)
-			stats.simulateSeconds += time.Since(stats.t).Nanoseconds()
+		stats.frames++
 
-			stats.t = time.Now()
-			//draw simulation state
-			_ = surf.Lock()
-			renderer.SetDrawColor(0, 0, 0, 255)
-			renderer.FillRect(nil)
-			renderer.SetDrawColor(0, 0, 255, 255)
-			for _, p := range l.particles {
-				_ = renderer.DrawLineF(4*p.x, 4*p.y, 4*(p.x-p.u), 4*(p.y-p.v))
-			}
-			surf.Unlock()
-			renderer.Present()
-			stats.drawSeconds += time.Since(stats.t).Nanoseconds()
+		// Calculate next simulation state
+		stats.t = time.Now()
+		l.simulate(*mouse)
+		stats.simulateSeconds += time.Since(stats.t).Nanoseconds()
+
+		// draw state
+		stats.t = time.Now()
+		_ = renderer.SetDrawColor(0, 0, 0, 255)
+		_ = renderer.Clear()
+		_ = renderer.SetDrawColor(0, 0, 255, 255)
+		for _, p := range l.particles {
+			_ = renderer.DrawLineF(4*p.x, 4*p.y, 4*(p.x-p.u), 4*(p.y-p.v))
 		}
+		renderer.Present()
+		stats.drawSeconds += time.Since(stats.t).Nanoseconds()
 	}
 	done <- true
 }
@@ -501,7 +423,6 @@ func SdlMain(l *Liquid) {
 
 	var (
 		window   *sdl.Window
-		surf     *sdl.Surface
 		renderer *sdl.Renderer
 		err      error
 		stats    = Stats{running: true}
@@ -510,30 +431,23 @@ func SdlMain(l *Liquid) {
 
 	if window, err = sdl.CreateWindow(
 		"test", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		int32(l.width)*4, int32(l.height)*4, sdl.WINDOW_SHOWN); err != nil {
+		int32(l.width)*4, int32(l.height)*4, sdl.WINDOW_SHOWN|sdl.WINDOW_ALLOW_HIGHDPI); err != nil {
 		panic(err)
 	}
 	defer window.Destroy()
 
-	if surf, err = window.GetSurface(); err != nil {
+	if _, err = window.GetSurface(); err != nil {
 		panic(err)
 	}
 
 	if renderer, err = window.GetRenderer(); err != nil {
 		panic(err)
 	}
-	//if renderer, err = sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED); err != nil {
-	//	_, _ = fmt.Fprintf(os.Stderr, "Failed to create renderer: %s\n", err)
-	//	return // don't use os.Exit(3); otherwise, previous deferred calls will never run
-	//}
-	//renderer.Clear()
-	//defer renderer.Destroy()
-	//_ = surf.FillRect(nil, 0)
 	//mch := make(chan MouseState)
 	start := time.Now()
 	renderDone := make(chan bool)
 
-	go renderloop(&stats, surf, renderer, l, mouse, renderDone)
+	go renderloop(&stats, renderer, l, mouse, renderDone)
 
 	for stats.running {
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
@@ -544,29 +458,29 @@ func SdlMain(l *Liquid) {
 			case *sdl.MouseButtonEvent:
 				if e.State == sdl.PRESSED {
 					fmt.Println("Mouse pressed")
-					// mouse.pressed = true
+					mouse.pressed = true
 				}
 				if e.State == sdl.RELEASED {
 					fmt.Println("Mouse released")
-					// mouse.pressed = false
+					mouse.pressed = false
 				}
 			case *sdl.MouseMotionEvent:
 				fmt.Printf("Mouse motion = (%d, %d)\n", e.X/4, e.Y/4)
-				// mouse.x = float32(e.X / 4)
-				// mouse.y = float32(e.Y / 4)
+				mouse.x = float32(e.X / 4)
+				mouse.y = float32(e.Y / 4)
 			}
 			// eventtime += time.Since(t1).Nanoseconds()
 		}
 	}
-
-	// Wait for last render loop to finish
-	<-renderDone
 
 	fmt.Printf("%v frames\n", stats.frames)
 	fmt.Printf("%v frames/s\n", float64(stats.frames)/time.Since(start).Seconds())
 	// fmt.Printf("%v time polling events\n", time.Duration(eventtime))
 	fmt.Printf("%v time simulating\n", time.Duration(stats.simulateSeconds))
 	fmt.Printf("%v time drawing\n", time.Duration(stats.drawSeconds))
+
+	// Wait for last render loop to finish before deferred functions above get called.
+	<-renderDone
 }
 
 /*
@@ -592,6 +506,6 @@ func SdlMain(l *Liquid) {
    ARGS = PARSER.parse_args()
 */
 func main() {
-	liquid := MakeLiquid(100, 100, 50, 50)
+	liquid := MakeLiquid(100, 100, 100, 100)
 	SdlMain(liquid)
 }
